@@ -1,7 +1,7 @@
 <?php
 
 use App\Services\Ruuvi\RuuviService;
-use Bnussbau\LaravelTrmnl\Facades\Trmnl;
+use Bnussbau\LaravelTrmnl\Facades\LaravelTrmnl as Trmnl;
 use Illuminate\Support\Facades\Route;
 
 // Public/internal: returns the latest merge payload as JSON.

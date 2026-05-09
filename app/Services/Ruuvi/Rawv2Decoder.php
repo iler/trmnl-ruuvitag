@@ -30,12 +30,17 @@ namespace App\Services\Ruuvi;
 class Rawv2Decoder
 {
     private const FORMAT_RAWV2 = 0x05;
+
     private const PAYLOAD_MIN_LENGTH = 24;
 
     private const INVALID_INT16 = -32768;       // 0x8000
+
     private const INVALID_UINT16 = 0xFFFF;
+
     private const INVALID_BATTERY_RAW = 2047;   // 11-bit max
+
     private const INVALID_TX_POWER_RAW = 31;    // 5-bit max
+
     private const INVALID_UINT8 = 0xFF;
 
     public function decode(string $hex): Reading
@@ -57,15 +62,15 @@ class Rawv2Decoder
             ));
         }
 
-        $tempRaw   = $this->int16BE($bytes, 1);
-        $humRaw    = $this->uint16BE($bytes, 3);
-        $pressRaw  = $this->uint16BE($bytes, 5);
-        $accelX    = $this->int16BE($bytes, 7);
-        $accelY    = $this->int16BE($bytes, 9);
-        $accelZ    = $this->int16BE($bytes, 11);
+        $tempRaw = $this->int16BE($bytes, 1);
+        $humRaw = $this->uint16BE($bytes, 3);
+        $pressRaw = $this->uint16BE($bytes, 5);
+        $accelX = $this->int16BE($bytes, 7);
+        $accelY = $this->int16BE($bytes, 9);
+        $accelZ = $this->int16BE($bytes, 11);
         $powerInfo = $this->uint16BE($bytes, 13);
-        $movement  = ord($bytes[15]);
-        $sequence  = $this->uint16BE($bytes, 16);
+        $movement = ord($bytes[15]);
+        $sequence = $this->uint16BE($bytes, 16);
 
         // Power info is packed: 11 bits battery + 5 bits TX power
         $batteryRaw = ($powerInfo >> 5) & 0x7FF;
@@ -104,12 +109,18 @@ class Rawv2Decoder
 
     private function int16BE(string $bytes, int $offset): int
     {
-        $u = unpack('n', substr($bytes, $offset, 2))[1];
+        $u = $this->uint16BE($bytes, $offset);
+
         return $u >= 0x8000 ? $u - 0x10000 : $u;
     }
 
     private function uint16BE(string $bytes, int $offset): int
     {
-        return unpack('n', substr($bytes, $offset, 2))[1];
+        // Length is validated in decode(), so this slice is always 2 bytes
+        // and unpack('n', ...) cannot fail.
+        $unpacked = unpack('n', substr($bytes, $offset, 2));
+        assert($unpacked !== false);
+
+        return $unpacked[1];
     }
 }

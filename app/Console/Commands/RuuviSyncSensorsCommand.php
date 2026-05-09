@@ -29,13 +29,17 @@ class RuuviSyncSensorsCommand extends Command
 
     public function handle(): int
     {
-        $configured = collect(config('ruuvi.sensors', []))
+        /** @var array<int, array<string, mixed>> $rows */
+        $rows = config('ruuvi.sensors', []);
+
+        $configured = collect($rows)
             ->map(fn (array $row) => $this->normalize($row))
             ->keyBy('mac');
 
         if ($configured->isEmpty()) {
             $this->warn('No sensors defined in config/ruuvi.php — nothing to sync.');
             $this->line('Add entries to the `sensors` array and re-run this command.');
+
             return self::SUCCESS;
         }
 
@@ -60,6 +64,7 @@ class RuuviSyncSensorsCommand extends Command
 
         if ($this->option('dry-run')) {
             $this->info('Dry run — no changes written.');
+
             return self::SUCCESS;
         }
 
@@ -95,6 +100,9 @@ class RuuviSyncSensorsCommand extends Command
     /**
      * Normalize a config row into a sensors-table row.
      * Uppercases the MAC, fills in defaults, validates required fields.
+     *
+     * @param  array<string, mixed>  $row
+     * @return array<string, mixed>
      */
     private function normalize(array $row): array
     {
@@ -106,15 +114,15 @@ class RuuviSyncSensorsCommand extends Command
         }
 
         return [
-            'mac'             => strtoupper($row['mac']),
-            'display_name'    => $row['display_name'],
-            'enabled'         => $row['enabled'] ?? true,
-            'temp_min'        => $row['temp_min'] ?? null,
-            'temp_max'        => $row['temp_max'] ?? null,
-            'humidity_min'    => $row['humidity_min'] ?? null,
-            'humidity_max'    => $row['humidity_max'] ?? null,
-            'battery_low_mv'  => $row['battery_low_mv'] ?? 2500,
-            'display_order'   => $row['display_order'] ?? 0,
+            'mac' => strtoupper($row['mac']),
+            'display_name' => $row['display_name'],
+            'enabled' => $row['enabled'] ?? true,
+            'temp_min' => $row['temp_min'] ?? null,
+            'temp_max' => $row['temp_max'] ?? null,
+            'humidity_min' => $row['humidity_min'] ?? null,
+            'humidity_max' => $row['humidity_max'] ?? null,
+            'battery_low_mv' => $row['battery_low_mv'] ?? 2500,
+            'display_order' => $row['display_order'] ?? 0,
         ];
     }
 }

@@ -16,6 +16,8 @@ class Client
     /**
      * Fetches /sensors-dense?measurements=true and caches the entire response.
      * Returns the raw `data.sensors` array — one call per cache-miss covers all sensors.
+     *
+     * @return array<int, array<string, mixed>>
      */
     public function fetchSensorsDense(): array
     {
@@ -44,6 +46,8 @@ class Client
 
     /**
      * Fetches a single sensor's history. Use sparingly — for sparkline/graph features.
+     *
+     * @return array<int, array<string, mixed>>
      */
     public function fetchHistory(string $mac, ?int $sinceTs = null, ?int $untilTs = null): array
     {

@@ -13,7 +13,7 @@ use App\Services\Ruuvi\Reading;
  */
 
 beforeEach(function () {
-    $this->decoder = new Rawv2Decoder();
+    $this->decoder = new Rawv2Decoder;
 });
 
 it('decodes spec test case 1: valid data', function () {
