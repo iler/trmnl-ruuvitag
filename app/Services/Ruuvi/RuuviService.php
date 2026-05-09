@@ -113,6 +113,8 @@ class RuuviService
     /**
      * Build the TRMNL merge-variable payload from persisted data.
      * Stays well under the 2 KB webhook limit.
+     *
+     * @return array{sensors: array<int, array<string, mixed>>, updated_at: string, sensor_count: int}
      */
     public function buildPayload(): array
     {
@@ -133,7 +135,7 @@ class RuuviService
                     ];
                 }
 
-                $ageSeconds = $now->diffInSeconds($r->measured_at);
+                $ageSeconds = (int) $now->diffInSeconds($r->measured_at, true);
                 $isStale = $ageSeconds > $staleAfter;
                 $batteryLow = $r->battery_mv < $s->battery_low_mv;
 

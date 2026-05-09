@@ -32,5 +32,8 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="RUUVI_API_TOKEN" value="test-token"/>
+        <env name="TRMNL_DATA_STRATEGY" value="webhook"/>
+        <env name="TRMNL_WEBHOOK_URL" value="https://trmnl.test/webhook"/>
     </php>
 </phpunit>
