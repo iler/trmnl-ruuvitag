@@ -21,6 +21,11 @@ COPY --chown=www-data:www-data \
      ./docker/etc/s6-overlay/s6-rc.d/user/contents.d \
      /etc/s6-overlay/s6-rc.d/user/contents.d
 
+# Custom entrypoint scripts (key:generate, migrate, ruuvi:sync-sensors, caches).
+# The base image runs anything executable in /etc/entrypoint.d/ in alphanumeric
+# order before launching the main process.
+COPY --chmod=755 ./docker/init.d/ /etc/entrypoint.d/
+
 # App code
 COPY --chown=www-data:www-data . .
 
