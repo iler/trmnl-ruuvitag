@@ -1,11 +1,69 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# TRMNL Ruuvitag
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel app that pushes Ruuvitag sensor data to a TRMNL e-ink device via TRMNL's webhook push strategy.
+
+## Configuration
+
+The app reads its sensor list from the Ruuvi Cloud account that owns `RUUVI_API_TOKEN`. Sensor names, display order, and alert thresholds (temperature, humidity, battery) are managed in the Ruuvi app — there is no per-sensor configuration in this repo. Add or rename a sensor in Ruuvi and it shows up on TRMNL within one fetch cycle. Alarms surface when Ruuvi's own alert is both enabled and triggered, which respects any delay/hysteresis configured there.
+
+Required and tunable env vars:
+
+| Variable             | Default                      | Purpose                                    |
+| -------------------- | ---------------------------- | ------------------------------------------ |
+| `RUUVI_API_TOKEN`    | _required_                   | Ruuvi Cloud bearer token                   |
+| `RUUVI_API_BASE`     | `https://network.ruuvi.com`  | API base URL (override only for testing)   |
+| `RUUVI_DISPLAY_TZ`   | `Europe/Helsinki`            | Timezone for `measured_at` in the payload  |
+| `RUUVI_CACHE_TTL`    | `300`                        | Seconds the cloud response is cached       |
+| `RUUVI_STALE_AFTER`  | `1800`                       | Age (s) past which a reading is `stale`    |
+
+The scheduler triggers a fetch every 15 minutes (`routes/console.php`). Readings persist in SQLite for dedup and history; only the latest is sent to TRMNL.
+
+## Local development
+
+Secrets come from a 1Password Environment. The 1Password desktop app + `op` CLI authenticate via system biometrics — no service-account token is needed locally.
+
+```sh
+make build      # build the app image
+make up         # start app + nightwatch-agent
+make logs       # tail app logs
+make shell      # shell into the app container
+make test       # run Pest tests inside the container
+make down       # stop
+```
+
+Every target wraps `docker compose` with `op run --environment $OP_ENV_ID --` so the Environment is the single source of truth for app secrets. Plain `docker compose up` won't work — the Environment IDs aren't in shell env without the wrap.
+
+## Server deploy
+
+Same `op run --environment` pattern, with a service-account token in place of the desktop app.
+
+1. Build the image (semver tag, e.g. `trmnl-ruuvi:0.1.0`) and either push to a registry the VM can pull from, or side-load it via `podman save | ssh vm 'podman load'`.
+
+2. On the VM, create `/etc/trmnl-ruuvi/bootstrap.env` (root:root 0600):
+
+    ```
+    OP_SERVICE_ACCOUNT_TOKEN=ops_eyJ...
+    OP_ENVIRONMENT_ID=einqhwbbevqifrwwxl66hvitpm
+    TAG=0.1.0
+    ```
+
+3. Invoke compose with the host's `op` resolving secrets:
+
+    ```sh
+    set -a; . /etc/trmnl-ruuvi/bootstrap.env; set +a
+    op run --environment "$OP_ENVIRONMENT_ID" -- \
+        podman-compose -f docker-compose.prod.yml up -d
+    ```
+
+   Wrap that in a systemd unit with `EnvironmentFile=/etc/trmnl-ruuvi/bootstrap.env` for restart-on-boot.
+
+Rotating the SA token: edit `bootstrap.env`, rerun. Rotating any app secret: edit the 1P Environment Variables tab, rerun — secrets are fetched fresh on every `compose up`.
+
+## Why not the local-`.env` FIFO mount
+
+The 1Password local-`.env` mount looks like the natural fit for this project but doesn't currently work with Docker Compose. Compose opens the `.env` FIFO multiple times during a single `compose up` (default substitution + one open per service that lists `env_file:`), and 1P's writer races on subsequent opens — comment-header lines and earlier content get re-injected mid-stream, producing parser errors at varying line offsets. A minimal repro is in `docs/1password-fifo-repro.md`. Filed upstream: _add links_.
+
+---
 
 ## About Laravel
 
