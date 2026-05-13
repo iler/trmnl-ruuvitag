@@ -13,7 +13,8 @@ class RuuviService
 {
     public function __construct(
         private readonly Client $client,
-        private readonly Rawv2Decoder $decoder,
+        private readonly Rawv2Decoder $rawv2Decoder,
+        private readonly AirDecoder $airDecoder,
     ) {}
 
     /**
@@ -78,9 +79,8 @@ class RuuviService
             }
 
             try {
-                $reading = $this->decoder->decode($payloadHex);
+                $reading = $this->decodePayload($payloadHex);
             } catch (Throwable $e) {
-                // Non-Rawv2 formats (e.g. Ruuvi Air's 0xE1) land here. Sensor stays no_data.
                 Log::info('Ruuvi: skipping unsupported payload format', [
                     'mac' => $mac,
                     'exception' => $e->getMessage(),
@@ -111,6 +111,23 @@ class RuuviService
                 'measured_at' => CarbonImmutable::createFromTimestamp($timestamp),
             ]);
         }
+    }
+
+    /**
+     * Dispatch decoding by the Ruuvi data-format byte at offset 0.
+     * Add new formats here as decoders are introduced.
+     */
+    private function decodePayload(string $payloadHex): Reading
+    {
+        $format = hexdec(substr($payloadHex, 0, 2));
+
+        return match ($format) {
+            0x05 => $this->rawv2Decoder->decode($payloadHex),
+            0xE1 => $this->airDecoder->decode($payloadHex),
+            default => throw new \InvalidArgumentException(sprintf(
+                'Unsupported Ruuvi data format: 0x%02X', $format,
+            )),
+        };
     }
 
     /**
