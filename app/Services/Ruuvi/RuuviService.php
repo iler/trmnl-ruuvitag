@@ -68,10 +68,20 @@ class RuuviService
                 continue;
             }
 
+            // /sensors-dense returns the full BLE advertisement; strip the AD
+            // wrapper to get the bare Rawv2 (or other-format) payload.
+            $payloadHex = BleAdvertisement::extractRuuviPayload($hex);
+            if ($payloadHex === null) {
+                Log::warning('Ruuvi: no Ruuvi manufacturer payload in advertisement', ['mac' => $mac]);
+
+                continue;
+            }
+
             try {
-                $reading = $this->decoder->decode($hex);
+                $reading = $this->decoder->decode($payloadHex);
             } catch (Throwable $e) {
-                Log::warning('Ruuvi: decode failed', [
+                // Non-Rawv2 formats (e.g. Ruuvi Air's 0xE1) land here. Sensor stays no_data.
+                Log::info('Ruuvi: skipping unsupported payload format', [
                     'mac' => $mac,
                     'exception' => $e->getMessage(),
                 ]);
@@ -132,9 +142,11 @@ class RuuviService
             $name = (string) ($raw['name'] ?? $mac);
             $reading = SensorReading::where('mac', $mac)->latest('measured_at')->first();
 
-            // A reading with a null temperature/humidity is the Rawv2 "not available"
-            // sentinel — treat it the same as having no reading at all.
-            if (! $reading || $reading->temperature === null || $reading->humidity === null) {
+            // Temperature is the primary metric — if the tag reports the Rawv2
+            // "not available" sentinel for it (or we have no reading at all)
+            // there's nothing useful to display. Humidity/pressure are allowed
+            // to be null independently (e.g. freezer sensors don't report humidity).
+            if (! $reading || $reading->temperature === null) {
                 $sensors[] = [
                     'name' => $name,
                     'status' => 'no_data',
@@ -149,7 +161,7 @@ class RuuviService
             $sensors[] = [
                 'name' => $name,
                 'temperature' => round($reading->temperature, 1),
-                'humidity' => round($reading->humidity, 0),
+                'humidity' => $reading->humidity !== null ? round($reading->humidity, 0) : null,
                 'pressure_hpa' => $reading->pressure !== null ? round($reading->pressure / 100, 0) : null,
                 'battery_mv' => $reading->battery_mv,
                 'measured_at' => $reading->measured_at

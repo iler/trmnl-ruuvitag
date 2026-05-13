@@ -33,7 +33,7 @@ it('runs the scheduled task end-to-end and dispatches the screen content job', f
                     'sensor' => 'AA:BB:CC:DD:EE:FF',
                     'name' => 'Living Room',
                     'measurements' => [[
-                        'data' => '0512FC5394C37C0004FFFC040CAC364200CDCBB8334C884F',
+                        'data' => '0201061BFF99040512FC5394C37C0004FFFC040CAC364200CDCBB8334C884F',
                         'timestamp' => Carbon::now()->subSeconds(30)->getTimestamp(),
                         'rssi' => -65,
                     ]],

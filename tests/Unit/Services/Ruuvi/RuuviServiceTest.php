@@ -23,10 +23,12 @@ afterEach(function () {
 });
 
 /**
- * Spec test vector 1 from the plan: temperature 24.3 °C, humidity 53.49 %,
- * pressure 100044 Pa, battery 2977 mV, sequence 205.
+ * Spec test vector 1 wrapped in a BLE advertisement, as the Ruuvi Cloud
+ * /sensors-dense endpoint returns it (Flags AD + Ruuvi Manufacturer-Specific AD).
+ * Decoded: temperature 24.3 °C, humidity 53.49 %, pressure 100044 Pa,
+ * battery 2977 mV, sequence 205.
  */
-const HEX_VALID = '0512FC5394C37C0004FFFC040CAC364200CDCBB8334C884F';
+const HEX_VALID = '0201061BFF99040512FC5394C37C0004FFFC040CAC364200CDCBB8334C884F';
 
 /**
  * @param  array<int, array<string, mixed>>  $alerts
