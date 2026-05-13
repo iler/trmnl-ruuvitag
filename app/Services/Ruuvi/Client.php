@@ -31,6 +31,7 @@ class Client
                     ->acceptJson()
                     ->get("{$this->baseUrl}/sensors-dense", [
                         'measurements' => 'true',
+                        'alerts' => 'true',
                     ]);
 
                 if ($response->status() === 401) {

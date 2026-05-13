@@ -1,5 +1,5 @@
 @php
-    // Primary sensor = first in display_order, fall back to "no data" placeholder
+    // Primary sensor = first sensor in the API response, fall back to "no data" placeholder
     $primary = collect($sensors ?? [])->first() ?? ['status' => 'no_data', 'name' => '—'];
     $isStale = $primary['is_stale'] ?? false;
 @endphp

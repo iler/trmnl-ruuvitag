@@ -8,6 +8,5 @@ if [ -z "$APP_KEY" ] && ! grep -q '^APP_KEY=base64:' .env 2>/dev/null; then
 fi
 
 php artisan migrate --force
-php artisan ruuvi:sync-sensors
 php artisan config:cache
 php artisan route:cache

@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Sensor;
 use App\Models\SensorReading;
 use App\Services\Ruuvi\Client;
 use App\Services\Ruuvi\Rawv2Decoder;
@@ -29,46 +28,57 @@ afterEach(function () {
  */
 const HEX_VALID = '0512FC5394C37C0004FFFC040CAC364200CDCBB8334C884F';
 
-function makeSensor(array $overrides = []): Sensor
+/**
+ * @param  array<int, array<string, mixed>>  $alerts
+ * @return array<string, mixed>
+ */
+function apiSensor(array $overrides = [], array $alerts = []): array
 {
-    return Sensor::create(array_merge([
-        'mac' => 'AA:BB:CC:DD:EE:FF',
-        'display_name' => 'Living Room',
-        'battery_low_mv' => 2500,
-        'display_order' => 1,
-    ], $overrides));
+    return array_merge([
+        'sensor' => 'AA:BB:CC:DD:EE:FF',
+        'name' => 'Living Room',
+        'measurements' => [[
+            'data' => HEX_VALID,
+            'timestamp' => Carbon::now()->subSeconds(30)->getTimestamp(),
+            'rssi' => -65,
+        ]],
+        'alerts' => $alerts,
+    ], $overrides);
 }
 
-function fakeReading(int $sensorId, array $overrides = []): SensorReading
+/**
+ * @return array<string, mixed>
+ */
+function alert(string $type, bool $triggered, bool $enabled = true): array
 {
-    return SensorReading::create(array_merge([
-        'sensor_id' => $sensorId,
-        'temperature' => 22.0,
-        'humidity' => 45.0,
-        'pressure' => 101000,
-        'battery_mv' => 2900,
-        'measurement_sequence' => 1,
-        'measured_at' => Carbon::now(),
-    ], $overrides));
+    return [
+        'type' => $type,
+        'min' => 0,
+        'max' => 0,
+        'counter' => 0,
+        'delay' => 0,
+        'enabled' => $enabled,
+        'description' => '',
+        'triggered' => $triggered,
+        'lastUpdated' => Carbon::now()->getTimestamp(),
+    ];
 }
 
-it('dispatches UpdateScreenContentJob exactly once with the expected payload shape', function () {
-    Bus::fake();
-    makeSensor();
-
+/**
+ * @param  array<int, array<string, mixed>>  $apiSensors
+ */
+function mockClient(array $apiSensors): Client
+{
     $client = Mockery::mock(Client::class);
-    $client->shouldReceive('fetchSensorsDense')->once()->andReturn([
-        [
-            'sensor' => 'AA:BB:CC:DD:EE:FF',
-            'measurements' => [[
-                'data' => HEX_VALID,
-                'timestamp' => Carbon::now()->subSeconds(30)->getTimestamp(),
-                'rssi' => -65,
-            ]],
-        ],
-    ]);
+    $client->shouldReceive('fetchSensorsDense')->andReturn($apiSensors);
 
-    $service = new RuuviService($client, new Rawv2Decoder);
+    return $client;
+}
+
+it('dispatches UpdateScreenContentJob with the expected payload shape', function () {
+    Bus::fake();
+
+    $service = new RuuviService(mockClient([apiSensor()]), new Rawv2Decoder);
 
     expect($service->pushUpdate())->toBeTrue();
 
@@ -85,23 +95,8 @@ it('dispatches UpdateScreenContentJob exactly once with the expected payload sha
 
 it('dedupes readings by measurement_sequence', function () {
     Bus::fake();
-    makeSensor();
 
-    $payload = [
-        [
-            'sensor' => 'AA:BB:CC:DD:EE:FF',
-            'measurements' => [[
-                'data' => HEX_VALID,
-                'timestamp' => Carbon::now()->subSeconds(30)->getTimestamp(),
-                'rssi' => -65,
-            ]],
-        ],
-    ];
-
-    $client = Mockery::mock(Client::class);
-    $client->shouldReceive('fetchSensorsDense')->twice()->andReturn($payload);
-
-    $service = new RuuviService($client, new Rawv2Decoder);
+    $service = new RuuviService(mockClient([apiSensor()]), new Rawv2Decoder);
     $service->pushUpdate();
     $service->pushUpdate();
 
@@ -109,61 +104,101 @@ it('dedupes readings by measurement_sequence', function () {
 });
 
 it('flags readings older than stale_after as stale', function () {
-    $sensor = makeSensor();
-    fakeReading($sensor->id, ['measured_at' => Carbon::now()->subHour()]);
+    SensorReading::create([
+        'mac' => 'AA:BB:CC:DD:EE:FF',
+        'temperature' => 22.0,
+        'humidity' => 45.0,
+        'pressure' => 101000,
+        'battery_mv' => 2900,
+        'measurement_sequence' => 1,
+        'measured_at' => Carbon::now()->subHour(),
+    ]);
 
-    $payload = app(RuuviService::class)->buildPayload();
+    $service = new RuuviService(mockClient([apiSensor(['measurements' => []])]), new Rawv2Decoder);
+    $payload = $service->buildPayload();
 
     expect($payload['sensors'][0]['is_stale'])->toBeTrue();
     expect($payload['sensors'][0]['status'])->toBe('stale');
 });
 
 it('keeps recent readings flagged ok', function () {
-    $sensor = makeSensor();
-    fakeReading($sensor->id, ['measured_at' => Carbon::now()->subSeconds(60)]);
+    Bus::fake();
+    $service = new RuuviService(mockClient([apiSensor()]), new Rawv2Decoder);
+    $service->pushUpdate();
 
-    $payload = app(RuuviService::class)->buildPayload();
+    $payload = $service->buildPayload();
 
     expect($payload['sensors'][0]['is_stale'])->toBeFalse();
     expect($payload['sensors'][0]['status'])->toBe('ok');
 });
 
-it('flags battery as low when below sensor threshold', function () {
-    $sensor = makeSensor(['battery_low_mv' => 2500]);
-    fakeReading($sensor->id, ['battery_mv' => 2400]);
+it('flags battery_low from an enabled, triggered battery alert', function () {
+    Bus::fake();
+    $service = new RuuviService(
+        mockClient([apiSensor([], [alert('battery', triggered: true)])]),
+        new Rawv2Decoder,
+    );
+    $service->pushUpdate();
 
-    expect(app(RuuviService::class)->buildPayload()['sensors'][0]['battery_low'])->toBeTrue();
+    expect($service->buildPayload()['sensors'][0]['battery_low'])->toBeTrue();
 });
 
-it('keeps battery_low false when above threshold', function () {
-    $sensor = makeSensor(['battery_low_mv' => 2500]);
-    fakeReading($sensor->id, ['battery_mv' => 2900]);
+it('keeps battery_low false when no battery alert is triggered', function () {
+    Bus::fake();
+    $service = new RuuviService(
+        mockClient([apiSensor([], [alert('battery', triggered: false)])]),
+        new Rawv2Decoder,
+    );
+    $service->pushUpdate();
 
-    expect(app(RuuviService::class)->buildPayload()['sensors'][0]['battery_low'])->toBeFalse();
+    expect($service->buildPayload()['sensors'][0]['battery_low'])->toBeFalse();
 });
 
-it('returns alarm = temperature when temperature exceeds max', function () {
-    $sensor = makeSensor(['temp_max' => 25.0]);
-    fakeReading($sensor->id, ['temperature' => 28.0]);
+it('ignores disabled battery alerts even when triggered', function () {
+    Bus::fake();
+    $service = new RuuviService(
+        mockClient([apiSensor([], [alert('battery', triggered: true, enabled: false)])]),
+        new Rawv2Decoder,
+    );
+    $service->pushUpdate();
 
-    expect(app(RuuviService::class)->buildPayload()['sensors'][0]['alarm'])->toBe('temperature');
+    expect($service->buildPayload()['sensors'][0]['battery_low'])->toBeFalse();
 });
 
-it('returns alarm = humidity when humidity falls below min', function () {
-    $sensor = makeSensor(['humidity_min' => 30.0]);
-    fakeReading($sensor->id, ['humidity' => 20.0]);
+it('returns alarm = temperature when a triggered temperature alert is enabled', function () {
+    Bus::fake();
+    $service = new RuuviService(
+        mockClient([apiSensor([], [alert('temperature', triggered: true)])]),
+        new Rawv2Decoder,
+    );
+    $service->pushUpdate();
 
-    expect(app(RuuviService::class)->buildPayload()['sensors'][0]['alarm'])->toBe('humidity');
+    expect($service->buildPayload()['sensors'][0]['alarm'])->toBe('temperature');
 });
 
-it('returns alarm = null when readings are within all configured thresholds', function () {
-    $sensor = makeSensor([
-        'temp_min' => 18.0, 'temp_max' => 26.0,
-        'humidity_min' => 30.0, 'humidity_max' => 60.0,
-    ]);
-    fakeReading($sensor->id, ['temperature' => 22.0, 'humidity' => 45.0]);
+it('returns alarm = humidity when a triggered humidity alert is enabled', function () {
+    Bus::fake();
+    $service = new RuuviService(
+        mockClient([apiSensor([], [alert('humidity', triggered: true)])]),
+        new Rawv2Decoder,
+    );
+    $service->pushUpdate();
 
-    expect(app(RuuviService::class)->buildPayload()['sensors'][0]['alarm'])->toBeNull();
+    expect($service->buildPayload()['sensors'][0]['alarm'])->toBe('humidity');
+});
+
+it('returns alarm = null when no display-relevant alert is triggered', function () {
+    Bus::fake();
+    $service = new RuuviService(
+        mockClient([apiSensor([], [
+            alert('temperature', triggered: false),
+            alert('humidity', triggered: false),
+        ])]),
+        new Rawv2Decoder,
+    );
+    $service->pushUpdate();
+
+    expect($service->buildPayload()['sensors'][0]['alarm'])->toBeNull();
 });
 
 it('returns false from pushUpdate when rate limit is exhausted, without dispatching', function () {

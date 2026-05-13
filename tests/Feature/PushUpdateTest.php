@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Sensor;
 use App\Models\SensorReading;
 use App\Services\Ruuvi\RuuviService;
 use Bnussbau\LaravelTrmnl\Jobs\UpdateScreenContentJob;
@@ -32,21 +31,16 @@ it('runs the scheduled task end-to-end and dispatches the screen content job', f
             'data' => [
                 'sensors' => [[
                     'sensor' => 'AA:BB:CC:DD:EE:FF',
+                    'name' => 'Living Room',
                     'measurements' => [[
                         'data' => '0512FC5394C37C0004FFFC040CAC364200CDCBB8334C884F',
                         'timestamp' => Carbon::now()->subSeconds(30)->getTimestamp(),
                         'rssi' => -65,
                     ]],
+                    'alerts' => [],
                 ]],
             ],
         ], 200),
-    ]);
-
-    Sensor::create([
-        'mac' => 'AA:BB:CC:DD:EE:FF',
-        'display_name' => 'Living Room',
-        'battery_low_mv' => 2500,
-        'display_order' => 1,
     ]);
 
     Artisan::call('schedule:run');
@@ -64,17 +58,13 @@ it('runs the scheduled task end-to-end and dispatches the screen content job', f
 });
 
 it('keeps the dispatched payload under TRMNLs 2 KB webhook limit', function () {
-    // Seed 8 sensors — a typical home setup is 4–6, this stress-tests the upper bound.
+    // 8 sensors — a typical home setup is 4–6, this stress-tests the upper bound.
+    $apiSensors = [];
     for ($i = 1; $i <= 8; $i++) {
-        $sensor = Sensor::create([
-            'mac' => sprintf('AA:BB:CC:DD:EE:%02X', $i),
-            'display_name' => "Sensor number {$i}",
-            'battery_low_mv' => 2500,
-            'display_order' => $i,
-        ]);
+        $mac = sprintf('AA:BB:CC:DD:EE:%02X', $i);
 
         SensorReading::create([
-            'sensor_id' => $sensor->id,
+            'mac' => $mac,
             'temperature' => 22.0 + ($i * 0.1),
             'humidity' => 45.0 + $i,
             'pressure' => 101000 + $i,
@@ -84,7 +74,20 @@ it('keeps the dispatched payload under TRMNLs 2 KB webhook limit', function () {
             'measurement_sequence' => $i,
             'measured_at' => Carbon::now()->subSeconds(30),
         ]);
+
+        $apiSensors[] = [
+            'sensor' => $mac,
+            'name' => "Sensor number {$i}",
+            'measurements' => [],
+            'alerts' => [],
+        ];
     }
+
+    Http::fake([
+        'network.ruuvi.com/sensors-dense*' => Http::response([
+            'data' => ['sensors' => $apiSensors],
+        ], 200),
+    ]);
 
     $payload = app(RuuviService::class)->buildPayload();
     $json = json_encode(['merge_variables' => $payload], JSON_THROW_ON_ERROR);
@@ -92,21 +95,16 @@ it('keeps the dispatched payload under TRMNLs 2 KB webhook limit', function () {
     expect(strlen($json))->toBeLessThan(2048);
 });
 
-it('continues to dispatch a degraded payload when the Ruuvi API rejects auth', function () {
+it('dispatches an empty payload when the Ruuvi API rejects auth', function () {
     Bus::fake();
     Http::fake([
         'network.ruuvi.com/sensors-dense*' => Http::response('', 401),
     ]);
 
-    Sensor::create([
-        'mac' => 'AA:BB:CC:DD:EE:FF',
-        'display_name' => 'Living Room',
-        'display_order' => 1,
-    ]);
-
     expect(app(RuuviService::class)->pushUpdate())->toBeTrue();
 
     Bus::assertDispatchedSync(UpdateScreenContentJob::class, function (UpdateScreenContentJob $job) {
-        return ($job->content['sensors'][0]['status'] ?? null) === 'no_data';
+        return ($job->content['sensors'] ?? null) === []
+            && ($job->content['sensor_count'] ?? null) === 0;
     });
 });

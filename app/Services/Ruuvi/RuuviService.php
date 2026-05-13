@@ -2,7 +2,6 @@
 
 namespace App\Services\Ruuvi;
 
-use App\Models\Sensor;
 use App\Models\SensorReading;
 use Bnussbau\LaravelTrmnl\Jobs\UpdateScreenContentJob;
 use Carbon\CarbonImmutable;
@@ -55,15 +54,10 @@ class RuuviService
             return;
         }
 
-        $configuredMacs = Sensor::where('enabled', true)
-            ->pluck('id', 'mac')
-            ->mapWithKeys(fn ($id, $mac) => [strtoupper($mac) => $id])
-            ->all();
-
         foreach ($sensors as $raw) {
-            $mac = strtoupper($raw['sensor'] ?? '');
-            if (! isset($configuredMacs[$mac])) {
-                continue; // skip unconfigured sensors
+            $mac = strtoupper((string) ($raw['sensor'] ?? ''));
+            if ($mac === '') {
+                continue;
             }
 
             $hex = $raw['measurements'][0]['data'] ?? null;
@@ -85,10 +79,9 @@ class RuuviService
                 continue;
             }
 
-            // Skip if we already have this exact measurement (dedupe by sequence number)
-            $sensorId = $configuredMacs[$mac];
+            // Dedupe by sequence number — skip if we already have this exact measurement.
             $exists = $reading->measurementSequence !== null
-                && SensorReading::where('sensor_id', $sensorId)
+                && SensorReading::where('mac', $mac)
                     ->where('measurement_sequence', $reading->measurementSequence)
                     ->exists();
 
@@ -97,7 +90,7 @@ class RuuviService
             }
 
             SensorReading::create([
-                'sensor_id' => $sensorId,
+                'mac' => $mac,
                 'temperature' => $reading->temperature,
                 'humidity' => $reading->humidity,
                 'pressure' => $reading->pressure,
@@ -111,52 +104,65 @@ class RuuviService
     }
 
     /**
-     * Build the TRMNL merge-variable payload from persisted data.
+     * Build the TRMNL merge-variable payload from the cached API response + persisted readings.
      * Stays well under the 2 KB webhook limit.
      *
      * @return array{sensors: array<int, array<string, mixed>>, updated_at: string, sensor_count: int}
      */
     public function buildPayload(): array
     {
-        $tz = config('ruuvi.display_timezone');
-        $staleAfter = config('ruuvi.stale_after');
+        $tz = (string) config('ruuvi.display_timezone');
+        $staleAfter = (int) config('ruuvi.stale_after');
         $now = CarbonImmutable::now();
 
-        $sensors = Sensor::with('latestReading')
-            ->where('enabled', true)
-            ->orderBy('display_order')
-            ->get()
-            ->map(function (Sensor $s) use ($now, $tz, $staleAfter) {
-                $r = $s->latestReading;
-                if (! $r) {
-                    return [
-                        'name' => $s->display_name,
-                        'status' => 'no_data',
-                    ];
-                }
+        try {
+            $apiSensors = $this->client->fetchSensorsDense();
+        } catch (Throwable $e) {
+            Log::error('Ruuvi: payload build fetch failed', ['exception' => $e->getMessage()]);
+            $apiSensors = [];
+        }
 
-                $ageSeconds = (int) $now->diffInSeconds($r->measured_at, true);
-                $isStale = $ageSeconds > $staleAfter;
-                $batteryLow = $r->battery_mv < $s->battery_low_mv;
+        $sensors = [];
+        foreach ($apiSensors as $raw) {
+            $mac = strtoupper((string) ($raw['sensor'] ?? ''));
+            if ($mac === '') {
+                continue;
+            }
 
-                return [
-                    'name' => $s->display_name,
-                    'temperature' => round($r->temperature, 1),
-                    'humidity' => round($r->humidity, 0),
-                    'pressure_hpa' => round($r->pressure / 100, 0),
-                    'battery_mv' => $r->battery_mv,
-                    'measured_at' => $r->measured_at
-                        ->copy()
-                        ->setTimezone($tz)
-                        ->format('H:i'),
-                    'age_seconds' => $ageSeconds,
-                    'is_stale' => $isStale,
-                    'battery_low' => $batteryLow,
-                    'alarm' => $this->checkThresholds($s, $r),
-                    'status' => $isStale ? 'stale' : 'ok',
+            $name = (string) ($raw['name'] ?? $mac);
+            $reading = SensorReading::where('mac', $mac)->latest('measured_at')->first();
+
+            // A reading with a null temperature/humidity is the Rawv2 "not available"
+            // sentinel — treat it the same as having no reading at all.
+            if (! $reading || $reading->temperature === null || $reading->humidity === null) {
+                $sensors[] = [
+                    'name' => $name,
+                    'status' => 'no_data',
                 ];
-            })
-            ->all();
+
+                continue;
+            }
+
+            $ageSeconds = (int) $now->diffInSeconds($reading->measured_at, true);
+            $isStale = $ageSeconds > $staleAfter;
+
+            $sensors[] = [
+                'name' => $name,
+                'temperature' => round($reading->temperature, 1),
+                'humidity' => round($reading->humidity, 0),
+                'pressure_hpa' => $reading->pressure !== null ? round($reading->pressure / 100, 0) : null,
+                'battery_mv' => $reading->battery_mv,
+                'measured_at' => $reading->measured_at
+                    ->copy()
+                    ->setTimezone($tz)
+                    ->format('H:i'),
+                'age_seconds' => $ageSeconds,
+                'is_stale' => $isStale,
+                'battery_low' => $this->isBatteryLow($raw),
+                'alarm' => $this->firstTriggeredAlarm($raw),
+                'status' => $isStale ? 'stale' : 'ok',
+            ];
+        }
 
         return [
             'sensors' => $sensors,
@@ -166,23 +172,41 @@ class RuuviService
     }
 
     /**
-     * Returns null, 'temperature', or 'humidity' depending on which threshold (if any) is breached.
+     * Returns the type of the first triggered, enabled alert relevant to the display
+     * ('temperature' or 'humidity'), or null. Battery alerts surface via `battery_low`.
+     *
+     * @param  array<string, mixed>  $raw
      */
-    private function checkThresholds(Sensor $s, SensorReading $r): ?string
+    private function firstTriggeredAlarm(array $raw): ?string
     {
-        if ($s->temp_min !== null && $r->temperature < $s->temp_min) {
-            return 'temperature';
-        }
-        if ($s->temp_max !== null && $r->temperature > $s->temp_max) {
-            return 'temperature';
-        }
-        if ($s->humidity_min !== null && $r->humidity < $s->humidity_min) {
-            return 'humidity';
-        }
-        if ($s->humidity_max !== null && $r->humidity > $s->humidity_max) {
-            return 'humidity';
+        foreach (($raw['alerts'] ?? []) as $alert) {
+            if (! ($alert['enabled'] ?? false) || ! ($alert['triggered'] ?? false)) {
+                continue;
+            }
+            $type = $alert['type'] ?? null;
+            if ($type === 'temperature' || $type === 'humidity') {
+                return $type;
+            }
         }
 
         return null;
+    }
+
+    /**
+     * Battery is low if the Ruuvi-side battery alert is enabled and triggered.
+     *
+     * @param  array<string, mixed>  $raw
+     */
+    private function isBatteryLow(array $raw): bool
+    {
+        foreach (($raw['alerts'] ?? []) as $alert) {
+            if (($alert['type'] ?? null) === 'battery'
+                && ($alert['enabled'] ?? false)
+                && ($alert['triggered'] ?? false)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
