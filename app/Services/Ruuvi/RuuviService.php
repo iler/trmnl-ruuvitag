@@ -132,9 +132,14 @@ class RuuviService
 
     /**
      * Build the TRMNL merge-variable payload from the cached API response + persisted readings.
-     * Stays well under the 2 KB webhook limit.
      *
-     * @return array{sensors: array<int, array<string, mixed>>, updated_at: string, sensor_count: int}
+     * Lean by design: only fields rendered by the Blade templates are emitted, and
+     * the boolean/alarm flags are omitted when in their default state — templates
+     * coalesce missing keys to `false`/`null`. With ~20 sensors this stays well
+     * under TRMNL+'s 5 KB webhook limit (and typically under the 2 KB free-tier
+     * limit too).
+     *
+     * @return array{sensors: array<int, array<string, mixed>>, updated_at: string}
      */
     public function buildPayload(): array
     {
@@ -175,28 +180,36 @@ class RuuviService
             $ageSeconds = (int) $now->diffInSeconds($reading->measured_at, true);
             $isStale = $ageSeconds > $staleAfter;
 
-            $sensors[] = [
+            $sensor = [
                 'name' => $name,
                 'temperature' => round($reading->temperature, 1),
                 'humidity' => $reading->humidity !== null ? round($reading->humidity, 0) : null,
                 'pressure_hpa' => $reading->pressure !== null ? round($reading->pressure / 100, 0) : null,
-                'battery_mv' => $reading->battery_mv,
                 'measured_at' => $reading->measured_at
                     ->copy()
                     ->setTimezone($tz)
                     ->format('H:i'),
-                'age_seconds' => $ageSeconds,
-                'is_stale' => $isStale,
-                'battery_low' => $this->isBatteryLow($raw),
-                'alarm' => $this->firstTriggeredAlarm($raw),
                 'status' => $isStale ? 'stale' : 'ok',
             ];
+
+            // Optional flags — only emitted when set, to keep the payload lean.
+            // Templates already use `?? false` / `?? null` for these keys.
+            if ($isStale) {
+                $sensor['is_stale'] = true;
+            }
+            if ($this->isBatteryLow($raw)) {
+                $sensor['battery_low'] = true;
+            }
+            if (($alarm = $this->firstTriggeredAlarm($raw)) !== null) {
+                $sensor['alarm'] = $alarm;
+            }
+
+            $sensors[] = $sensor;
         }
 
         return [
             'sensors' => $sensors,
             'updated_at' => $now->setTimezone($tz)->format('Y-m-d H:i'),
-            'sensor_count' => count($sensors),
         ];
     }
 

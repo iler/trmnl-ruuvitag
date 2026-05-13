@@ -96,8 +96,7 @@ it('dispatches UpdateScreenContentJob with the expected payload shape', function
         return count($sensors) === 1
             && $sensors[0]['name'] === 'Living Room'
             && $sensors[0]['temperature'] === 24.3
-            && $sensors[0]['status'] === 'ok'
-            && $job->content['sensor_count'] === 1;
+            && $sensors[0]['status'] === 'ok';
     });
 });
 
@@ -151,18 +150,18 @@ it('flags readings older than stale_after as stale', function () {
     $service = makeService(mockClient([apiSensor(['measurements' => []])]));
     $payload = $service->buildPayload();
 
-    expect($payload['sensors'][0]['is_stale'])->toBeTrue();
+    expect($payload['sensors'][0]['is_stale'] ?? false)->toBeTrue();
     expect($payload['sensors'][0]['status'])->toBe('stale');
 });
 
-it('keeps recent readings flagged ok', function () {
+it('keeps recent readings flagged ok and omits is_stale', function () {
     Bus::fake();
     $service = makeService(mockClient([apiSensor()]));
     $service->pushUpdate();
 
     $payload = $service->buildPayload();
 
-    expect($payload['sensors'][0]['is_stale'])->toBeFalse();
+    expect($payload['sensors'][0])->not->toHaveKey('is_stale');
     expect($payload['sensors'][0]['status'])->toBe('ok');
 });
 
@@ -171,15 +170,15 @@ it('flags battery_low from an enabled, triggered battery alert', function () {
     $service = makeService(mockClient([apiSensor([], [alert('battery', triggered: true)])]));
     $service->pushUpdate();
 
-    expect($service->buildPayload()['sensors'][0]['battery_low'])->toBeTrue();
+    expect($service->buildPayload()['sensors'][0]['battery_low'] ?? false)->toBeTrue();
 });
 
-it('keeps battery_low false when no battery alert is triggered', function () {
+it('omits battery_low when no battery alert is triggered', function () {
     Bus::fake();
     $service = makeService(mockClient([apiSensor([], [alert('battery', triggered: false)])]));
     $service->pushUpdate();
 
-    expect($service->buildPayload()['sensors'][0]['battery_low'])->toBeFalse();
+    expect($service->buildPayload()['sensors'][0])->not->toHaveKey('battery_low');
 });
 
 it('ignores disabled battery alerts even when triggered', function () {
@@ -187,7 +186,7 @@ it('ignores disabled battery alerts even when triggered', function () {
     $service = makeService(mockClient([apiSensor([], [alert('battery', triggered: true, enabled: false)])]));
     $service->pushUpdate();
 
-    expect($service->buildPayload()['sensors'][0]['battery_low'])->toBeFalse();
+    expect($service->buildPayload()['sensors'][0])->not->toHaveKey('battery_low');
 });
 
 it('returns alarm = temperature when a triggered temperature alert is enabled', function () {
@@ -195,7 +194,7 @@ it('returns alarm = temperature when a triggered temperature alert is enabled', 
     $service = makeService(mockClient([apiSensor([], [alert('temperature', triggered: true)])]));
     $service->pushUpdate();
 
-    expect($service->buildPayload()['sensors'][0]['alarm'])->toBe('temperature');
+    expect($service->buildPayload()['sensors'][0]['alarm'] ?? null)->toBe('temperature');
 });
 
 it('returns alarm = humidity when a triggered humidity alert is enabled', function () {
@@ -203,10 +202,10 @@ it('returns alarm = humidity when a triggered humidity alert is enabled', functi
     $service = makeService(mockClient([apiSensor([], [alert('humidity', triggered: true)])]));
     $service->pushUpdate();
 
-    expect($service->buildPayload()['sensors'][0]['alarm'])->toBe('humidity');
+    expect($service->buildPayload()['sensors'][0]['alarm'] ?? null)->toBe('humidity');
 });
 
-it('returns alarm = null when no display-relevant alert is triggered', function () {
+it('omits alarm when no display-relevant alert is triggered', function () {
     Bus::fake();
     $service = makeService(mockClient([apiSensor([], [
         alert('temperature', triggered: false),
@@ -214,7 +213,7 @@ it('returns alarm = null when no display-relevant alert is triggered', function 
     ])]));
     $service->pushUpdate();
 
-    expect($service->buildPayload()['sensors'][0]['alarm'])->toBeNull();
+    expect($service->buildPayload()['sensors'][0])->not->toHaveKey('alarm');
 });
 
 it('returns false from pushUpdate when rate limit is exhausted, without dispatching', function () {

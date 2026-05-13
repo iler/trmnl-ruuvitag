@@ -67,13 +67,12 @@ class RuuviDoctorCommand extends Command
             $s = $okSensors[0];
             $this->newLine();
             $this->components->bulletList([sprintf(
-                '%s: %s °C / %s%% / %s hPa  (battery %s mV, age %ds)',
+                '%s: %s °C / %s%% / %s hPa  (measured %s)',
                 $s['name'] ?? '?',
                 $s['temperature'] ?? '?',
                 $s['humidity'] ?? '?',
                 $s['pressure_hpa'] ?? '?',
-                $s['battery_mv'] ?? '—',
-                $s['age_seconds'] ?? '?',
+                $s['measured_at'] ?? '?',
             )]);
         }
 

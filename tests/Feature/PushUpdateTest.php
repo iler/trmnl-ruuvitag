@@ -57,10 +57,12 @@ it('runs the scheduled task end-to-end and dispatches the screen content job', f
     expect(SensorReading::count())->toBe(1);
 });
 
-it('keeps the dispatched payload under TRMNLs 2 KB webhook limit', function () {
-    // 8 sensors — a typical home setup is 4–6, this stress-tests the upper bound.
+it('keeps the dispatched payload under TRMNL+ 5 KB webhook limit at 19 sensors', function () {
+    // 19 sensors matches the developer's actual deployment. TRMNL+ raises the
+    // webhook payload limit from 2 KB (free) to 5 KB — guard against drift
+    // from either side of that envelope.
     $apiSensors = [];
-    for ($i = 1; $i <= 8; $i++) {
+    for ($i = 1; $i <= 19; $i++) {
         $mac = sprintf('AA:BB:CC:DD:EE:%02X', $i);
 
         SensorReading::create([
@@ -92,7 +94,7 @@ it('keeps the dispatched payload under TRMNLs 2 KB webhook limit', function () {
     $payload = app(RuuviService::class)->buildPayload();
     $json = json_encode(['merge_variables' => $payload], JSON_THROW_ON_ERROR);
 
-    expect(strlen($json))->toBeLessThan(2048);
+    expect(strlen($json))->toBeLessThan(5120);
 });
 
 it('dispatches an empty payload when the Ruuvi API rejects auth', function () {
@@ -104,7 +106,6 @@ it('dispatches an empty payload when the Ruuvi API rejects auth', function () {
     expect(app(RuuviService::class)->pushUpdate())->toBeTrue();
 
     Bus::assertDispatchedSync(UpdateScreenContentJob::class, function (UpdateScreenContentJob $job) {
-        return ($job->content['sensors'] ?? null) === []
-            && ($job->content['sensor_count'] ?? null) === 0;
+        return ($job->content['sensors'] ?? null) === [];
     });
 });
