@@ -1,0 +1,57 @@
+# Local development overlay.
+#
+# Pairs with docker-compose.yml; combine via:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml ...
+# Or use `make dev` / `make test` from the Makefile.
+#
+# Differences from the prod compose:
+#   - Builds the `dev` Dockerfile stage, which installs dev composer deps
+#     (Pest, Larastan, Pint, …).
+#   - Bind-mounts the project root into the container so host edits to
+#     blade templates, PHP files, etc. land instantly — no `docker compose
+#     cp` round-trips. Tests live on the host and run in-container.
+#   - Overlays named volumes for vendor + bootstrap/cache so the bind mount
+#     doesn't mask container-installed packages or get polluted by runtime
+#     caches written from inside the container.
+#   - Sets APP_ENV=local and APP_DEBUG=true.
+#   - Does NOT require 1Password / `op run` — runs from plain env values.
+#
+# The dev image also expects a working `.env` on the host (so artisan can
+# bootstrap, key:generate can persist, etc). `make dev` creates one from
+# .env.example on first start.
+
+services:
+  app:
+    build:
+      context: .
+      target: dev
+    image: trmnl-ruuvi:dev
+    environment:
+      # APP_ENV / APP_DEBUG / APP_KEY come from the .env file mounted via the
+      # bind mount below. Don't set APP_ENV here — when `php artisan test`
+      # runs, phpunit.xml flips APP_ENV to `testing` so Laravel loads the
+      # corresponding .env.testing. A hard-coded APP_ENV in the container env
+      # would beat phpunit's override and break test config.
+      # Override here only if you want to bypass .env entirely.
+      # Disable serversideup's Laravel automations that cache config/routes/
+      # views — caching freezes the .env, masks phpunit.xml env overrides at
+      # test time, and prevents bind-mounted blade/route edits from showing.
+      AUTORUN_LARAVEL_CONFIG_CACHE: "false"
+      AUTORUN_LARAVEL_ROUTE_CACHE: "false"
+      AUTORUN_LARAVEL_VIEW_CACHE: "false"
+      AUTORUN_LARAVEL_EVENT_CACHE: "false"
+      AUTORUN_LARAVEL_OPTIMIZE: "false"
+    volumes:
+      # Source: host → container
+      - ./:/var/www/html
+      # Overlays so the bind mount doesn't mask image-installed paths
+      - dev-vendor:/var/www/html/vendor
+      - dev-bootstrap-cache:/var/www/html/bootstrap/cache
+      # Override the base compose's `ruuvi-db` named volume at the same target
+      # so migrations/, factories/, etc. stay accessible. The dev SQLite file
+      # just lives on the host alongside the source — it's already gitignored.
+      - ./database:/var/www/html/database
+
+volumes:
+  dev-vendor:
+  dev-bootstrap-cache:

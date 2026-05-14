@@ -3,6 +3,7 @@
 use App\Models\SensorReading;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
@@ -13,6 +14,11 @@ beforeEach(function () {
     Cache::flush();
     RateLimiter::clear('ruuvi-cloud-fetch');
     Carbon::setTestNow('2026-05-09 12:00:00');
+    // pushUpdate() dispatches UpdateScreenContentJob synchronously, which would
+    // make a real HTTP POST to TRMNL_WEBHOOK_URL. We don't fake that URL in the
+    // per-test Http::fake() blocks, so faking the bus keeps the test focused on
+    // the Ruuvi-side cycle and avoids a stray cURL DNS failure.
+    Bus::fake();
 });
 
 afterEach(function () {
