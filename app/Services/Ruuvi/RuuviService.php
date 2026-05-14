@@ -200,6 +200,7 @@ class RuuviService
             if ($this->isBatteryLow($raw)) {
                 $sensor['battery_low'] = true;
             }
+            $sensor['battery_level'] = $this->bucketBatteryLevel($reading->battery_mv);
             if (($alarm = $this->firstTriggeredAlarm($raw)) !== null) {
                 $sensor['alarm'] = $alarm;
             }
@@ -250,5 +251,22 @@ class RuuviService
         }
 
         return false;
+    }
+
+    /**
+     * Bucket the battery voltage for the display layer.
+     *
+     * Thresholds for a CR2477: fresh ≈3000 mV; under-load discharge knee
+     * around 2.5 V. Air sensors / older firmwares may report null, in which
+     * case we surface 'unknown' rather than guess a healthy state.
+     */
+    private function bucketBatteryLevel(?int $batteryMv): string
+    {
+        return match (true) {
+            $batteryMv === null => 'unknown',
+            $batteryMv >= 2900 => 'full',
+            $batteryMv >= 2500 => 'medium',
+            default => 'low',
+        };
     }
 }

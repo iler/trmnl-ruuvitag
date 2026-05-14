@@ -189,6 +189,29 @@ it('ignores disabled battery alerts even when triggered', function () {
     expect($service->buildPayload()['sensors'][0])->not->toHaveKey('battery_low');
 });
 
+it('buckets battery_mv into a battery_level for the display', function (?int $mv, string $expected) {
+    SensorReading::create([
+        'mac' => 'AA:BB:CC:DD:EE:FF',
+        'temperature' => 22.0,
+        'humidity' => 45.0,
+        'pressure' => 101000,
+        'battery_mv' => $mv,
+        'measurement_sequence' => 1,
+        'measured_at' => Carbon::now(),
+    ]);
+
+    $service = makeService(mockClient([apiSensor(['measurements' => []])]));
+
+    expect($service->buildPayload()['sensors'][0]['battery_level'])->toBe($expected);
+})->with([
+    'fresh CR2477 → full' => [3000, 'full'],
+    'on the full threshold' => [2900, 'full'],
+    'mid discharge → medium' => [2700, 'medium'],
+    'on the medium threshold' => [2500, 'medium'],
+    'past the knee → low' => [2400, 'low'],
+    'no voltage reported → unknown' => [null, 'unknown'],
+]);
+
 it('returns alarm = temperature when a triggered temperature alert is enabled', function () {
     Bus::fake();
     $service = makeService(mockClient([apiSensor([], [alert('temperature', triggered: true)])]));
