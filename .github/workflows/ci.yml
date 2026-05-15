@@ -39,7 +39,7 @@ jobs:
           touch database/database.sqlite
 
       - name: Run Pest
-        run: vendor/bin/pest --coverage
+        run: vendor/bin/pest
 
   lint:
     name: Static analysis & code style
