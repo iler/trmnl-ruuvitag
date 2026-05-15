@@ -35,7 +35,53 @@ Every target wraps `docker compose` with `op run --environment $OP_ENV_ID --` so
 
 ## Server deploy
 
-Same `op run --environment` pattern, with a service-account token in place of the desktop app.
+Two parallel deploy paths, both first-class. They share the same secret bootstrap (`/etc/trmnl-ruuvi/bootstrap.env`); pick the orchestrator that fits the target host.
+
+### Option A — Podman quadlets (systemd-managed, recommended for long-lived servers)
+
+Native systemd integration plus a daily auto-update timer that picks up new images published by CI to GHCR. Requires podman 4.4+ (which ships the quadlet generator) and the `op` CLI at `/usr/local/bin/op`.
+
+1. Clone this repo onto the VM (the deploy files ship inside it).
+
+2. On the VM, create `/etc/trmnl-ruuvi/bootstrap.env` (root:root 0600):
+
+    ```
+    OP_SERVICE_ACCOUNT_TOKEN=ops_eyJ...
+    OP_ENVIRONMENT_ID=einqhwbbevqifrwwxl66hvitpm
+    ```
+
+    The quadlet path uses only `OP_SERVICE_ACCOUNT_TOKEN`; `OP_ENVIRONMENT_ID` is retained for Option B (sharing one bootstrap.env across both paths).
+
+3. Copy the unit files and the secret template into place:
+
+    ```sh
+    sudo install -d -m 0700 /etc/trmnl-ruuvi
+    sudo install -m 0644 deploy/secrets.env.tmpl /etc/trmnl-ruuvi/secrets.env.tmpl
+    sudo $EDITOR /etc/trmnl-ruuvi/secrets.env.tmpl      # adjust op:// paths to your 1P layout
+
+    sudo cp deploy/quadlets/*.network deploy/quadlets/*.volume deploy/quadlets/*.container \
+            /etc/containers/systemd/
+    sudo cp deploy/systemd/op-inject.service /etc/systemd/system/
+
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now podman-auto-update.timer
+    sudo systemctl start app.service
+    ```
+
+4. Smoke test:
+
+    ```sh
+    systemctl status op-inject.service app.service nightwatch-agent.service
+    curl -fsS http://localhost:8080/up
+    ```
+
+To force re-injection of secrets after rotating in 1Password: `sudo systemctl restart op-inject.service && sudo systemctl restart app.service nightwatch-agent.service`. A plain `systemctl restart app.service` does **not** re-run op-inject — `RemainAfterExit=yes` keeps the oneshot active until explicitly restarted.
+
+`AutoUpdate=registry` is set on both containers and `podman-auto-update.timer` runs daily — new `:latest` images published by CI on merge to `main` get pulled and restarted automatically, with rollback if the new container fails to start.
+
+### Option B — podman-compose with `op run`
+
+The original path, kept for environments without systemd or for quick prod-mimicking.
 
 1. Build the image (semver tag, e.g. `trmnl-ruuvi:0.1.0`) and either push to a registry the VM can pull from, or side-load it via `podman save | ssh vm 'podman load'`.
 
