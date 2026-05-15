@@ -80,6 +80,21 @@ jobs:
       - name: Run decoder tests only
         run: vendor/bin/pest tests/Unit/Services/Ruuvi/Rawv2DecoderTest.php
 
+  quadlet-validation:
+    name: Podman quadlet structural validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate quadlet unit files
+        run: |
+          docker run --rm \
+            -v $PWD/deploy/quadlets:/etc/containers/systemd:ro \
+            quay.io/podman/stable \
+            /usr/libexec/podman/quadlet --dryrun /tmp/out
+
   docker-build:
     name: Docker image build
     runs-on: ubuntu-latest
