@@ -43,8 +43,16 @@ Native systemd integration plus a daily auto-update timer that picks up new imag
 
 1. Clone this repo onto the VM (the deploy files ship inside it).
 
-2. On the VM, create `/etc/trmnl-ruuvi/bootstrap.env` (root:root 0600):
+2. On the VM, create the bootstrap directory and the env file (root:root 0600):
 
+    ```sh
+    sudo install -d -m 0700 /etc/trmnl-ruuvi
+    sudo touch /etc/trmnl-ruuvi/bootstrap.env
+    sudo chmod 0600 /etc/trmnl-ruuvi/bootstrap.env
+    sudo $EDITOR /etc/trmnl-ruuvi/bootstrap.env
+    ```
+
+    Contents:
     ```
     OP_SERVICE_ACCOUNT_TOKEN=ops_eyJ...
     OP_ENVIRONMENT_ID=einqhwbbevqifrwwxl66hvitpm
@@ -55,7 +63,6 @@ Native systemd integration plus a daily auto-update timer that picks up new imag
 3. Copy the unit files and the secret template into place:
 
     ```sh
-    sudo install -d -m 0700 /etc/trmnl-ruuvi
     sudo install -m 0644 deploy/secrets.env.tmpl /etc/trmnl-ruuvi/secrets.env.tmpl
     sudo $EDITOR /etc/trmnl-ruuvi/secrets.env.tmpl      # adjust op:// paths to your 1P layout
 
@@ -78,6 +85,8 @@ Native systemd integration plus a daily auto-update timer that picks up new imag
 To force re-injection of secrets after rotating in 1Password: `sudo systemctl restart op-inject.service && sudo systemctl restart app.service nightwatch-agent.service`. A plain `systemctl restart app.service` does **not** re-run op-inject — `RemainAfterExit=yes` keeps the oneshot active until explicitly restarted.
 
 `AutoUpdate=registry` is set on both containers and `podman-auto-update.timer` runs daily — new `:latest` images published by CI on merge to `main` get pulled and restarted automatically, with rollback if the new container fails to start.
+
+**Operational controls.** To pause auto-updates (e.g., to debug a regression without `:latest` moving under you): `sudo systemctl disable --now podman-auto-update.timer`. To pin to a specific image, edit the `Image=` line in `/etc/containers/systemd/app.container` to `ghcr.io/iler/trmnl-ruuvitag:<sha>`, then `sudo systemctl daemon-reload && sudo systemctl restart app.service`. Re-enable auto-updates with `sudo systemctl enable --now podman-auto-update.timer`.
 
 ### Option B — podman-compose with `op run`
 

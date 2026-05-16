@@ -30,7 +30,7 @@ Podman quadlets ship native systemd integration (`.container` / `.network` / `.v
 
 ## Architecture
 
-Five files ship from the repo; the admin copies them into three system paths on the host.
+Six files ship from the repo; the admin copies them into three system paths on the host.
 
 | Repo path | Installed to | Purpose |
 |---|---|---|

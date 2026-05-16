@@ -4,7 +4,7 @@
 
 **Goal:** Add a systemd-managed podman quadlets deploy path for prod, coexisting with the existing `docker-compose.prod.yml` as a first-class equal. Auto-update from GHCR. 1Password-resolved secrets.
 
-**Architecture:** Five unit files in `deploy/` get installed to `/etc/containers/systemd/` and `/etc/systemd/system/` on the prod host. A oneshot `op-inject.service` resolves 1P references to a tmpfs `/run/trmnl-ruuvi/env`, which both `.container` quadlets `EnvironmentFile=`. Containers join a named `trmnl-ruuvi.network` so DNS by container name is preserved. `AutoUpdate=registry` plus `podman-auto-update.timer` handles low-touch image refresh.
+**Architecture:** Six files in `deploy/` get installed to `/etc/containers/systemd/` and `/etc/systemd/system/` on the prod host. A oneshot `op-inject.service` resolves 1P references to a tmpfs `/run/trmnl-ruuvi/env`, which both `.container` quadlets `EnvironmentFile=`. Containers join a named `trmnl-ruuvi.network` so DNS by container name is preserved. `AutoUpdate=registry` plus `podman-auto-update.timer` handles low-touch image refresh.
 
 **Tech Stack:** podman quadlets (`.network` / `.volume` / `.container`), systemd, 1Password `op inject`, Pest (parity test), GitHub Actions (CI validator), Docker (the validator harness — runs `quay.io/podman/stable` to invoke the quadlet generator).
 

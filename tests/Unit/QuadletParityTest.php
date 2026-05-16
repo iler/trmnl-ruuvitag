@@ -63,3 +63,8 @@ it('passes every compose nightwatch-agent env key through to the nightwatch-agen
         'nightwatch-agent.container is missing keys present in compose: '.implode(', ', $missing)
     );
 });
+
+it('routes secrets through the op-inject env file in every container', function (string $service) {
+    $contents = file_get_contents(__DIR__."/../../deploy/quadlets/{$service}.container");
+    expect($contents)->toContain('EnvironmentFile=/run/trmnl-ruuvi/env');
+})->with(['app', 'nightwatch-agent']);
