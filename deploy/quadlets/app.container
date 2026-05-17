@@ -1,0 +1,32 @@
+[Unit]
+Description=trmnl-ruuvi app
+Requires=op-inject.service trmnl-ruuvi-network.service
+After=op-inject.service trmnl-ruuvi-network.service
+Wants=nightwatch-agent.service
+After=nightwatch-agent.service
+
+[Container]
+Image=ghcr.io/iler/trmnl-ruuvitag:latest
+ContainerName=app
+Network=trmnl-ruuvi.network
+PublishPort=8080:8080
+Volume=ruuvi-db.volume:/var/www/html/database:Z
+EnvironmentFile=/run/trmnl-ruuvi/env
+AutoUpdate=registry
+Environment=SSL_MODE=off
+Environment=AUTORUN_ENABLED=true
+Environment=PHP_OPCACHE_ENABLE=1
+Environment=APP_ENV=production
+Environment=APP_TIMEZONE=UTC
+Environment=DB_CONNECTION=sqlite
+Environment=DB_DATABASE=/var/www/html/database/database.sqlite
+Environment=RUUVI_DISPLAY_TZ=Europe/Helsinki
+Environment=TRMNL_PLUGIN_TYPE=private
+Environment=TRMNL_DATA_STRATEGY=webhook
+Environment=NIGHTWATCH_INGEST_URI=nightwatch-agent:2407
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

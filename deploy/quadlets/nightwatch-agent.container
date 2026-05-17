@@ -1,0 +1,22 @@
+[Unit]
+Description=Nightwatch agent for trmnl-ruuvi
+Requires=op-inject.service
+After=op-inject.service
+
+[Container]
+Image=docker.io/laravelphp/nightwatch-agent:v1
+ContainerName=nightwatch-agent
+Network=trmnl-ruuvi.network
+EnvironmentFile=/run/trmnl-ruuvi/env
+AutoUpdate=registry
+HealthCmd=php nightwatch-status
+HealthInterval=30s
+HealthTimeout=5s
+HealthRetries=3
+HealthStartPeriod=5s
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

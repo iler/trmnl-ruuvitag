@@ -1,0 +1,36 @@
+.git
+.github
+.idea
+.vscode
+.claude
+
+# Built fresh inside the image
+vendor
+node_modules
+
+# Regenerated at boot by package:discover and config:cache
+bootstrap/cache/*.php
+
+# Local state that must not leak into the image
+.env
+.env.*
+!.env.example
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/app/private/*
+storage/app/public/*
+database/database.sqlite
+database/*.sqlite-journal
+
+# Tests, dev tooling — not needed at runtime
+tests
+phpunit.xml
+phpstan.neon
+phpstan.cache
+
+# Editor / OS noise
+.DS_Store
+*.log
+*.swp

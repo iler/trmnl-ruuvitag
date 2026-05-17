@@ -1,0 +1,4 @@
+#!/command/with-contenttypeenv /command/execlineb -P
+cd /var/www/html
+s6-setuidgid www-data
+php artisan schedule:work

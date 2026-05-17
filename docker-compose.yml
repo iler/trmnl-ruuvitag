@@ -1,0 +1,41 @@
+services:
+  app:
+    build: .
+    image: trmnl-ruuvi
+    ports:
+      - "8080:8080"
+    environment:
+      SSL_MODE: "off"
+      AUTORUN_ENABLED: "true"
+      PHP_OPCACHE_ENABLE: "1"
+      APP_KEY: "${APP_KEY}"
+      APP_TIMEZONE: "UTC"
+      DB_CONNECTION: "sqlite"
+      DB_DATABASE: "/var/www/html/database/database.sqlite"
+      RUUVI_API_TOKEN: "${RUUVI_API_TOKEN}"
+      RUUVI_DISPLAY_TZ: "Europe/Helsinki"
+      TRMNL_PLUGIN_TYPE: "private"
+      TRMNL_DATA_STRATEGY: "webhook"
+      TRMNL_WEBHOOK_URL: "${TRMNL_WEBHOOK_URL}"
+      NIGHTWATCH_TOKEN: "${NIGHTWATCH_TOKEN}"
+      NIGHTWATCH_INGEST_URI: "nightwatch-agent:2407"
+    volumes:
+      - ruuvi-db:/var/www/html/database
+    depends_on:
+      - nightwatch-agent
+    restart: unless-stopped
+
+  nightwatch-agent:
+    image: laravelphp/nightwatch-agent:v1
+    environment:
+      NIGHTWATCH_TOKEN: "${NIGHTWATCH_TOKEN}"
+    healthcheck:
+      test: ["CMD", "php", "nightwatch-status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  ruuvi-db:
