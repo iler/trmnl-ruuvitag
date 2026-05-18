@@ -39,54 +39,9 @@ Two parallel deploy paths, both first-class. They share the same secret bootstra
 
 ### Option A — Podman quadlets (systemd-managed, recommended for long-lived servers)
 
-Native systemd integration plus a daily auto-update timer that picks up new images published by CI to GHCR. Requires podman 4.4+ (which ships the quadlet generator) and the `op` CLI at `/usr/local/bin/op`.
+Quadlet unit files, the `op-inject.service` oneshot, and the install guide live in a separate repo: **[iler/selfhost-configs/trmnl-ruuvi/](https://github.com/iler/selfhost-configs/tree/main/trmnl-ruuvi)**. Native systemd integration plus a daily auto-update timer that picks up new images published by CI to GHCR. Recommended for long-lived servers.
 
-1. Clone this repo onto the VM (the deploy files ship inside it).
-
-2. On the VM, create the bootstrap directory and the env file (root:root 0600):
-
-    ```sh
-    sudo install -d -m 0700 /etc/trmnl-ruuvi
-    sudo touch /etc/trmnl-ruuvi/bootstrap.env
-    sudo chmod 0600 /etc/trmnl-ruuvi/bootstrap.env
-    sudo $EDITOR /etc/trmnl-ruuvi/bootstrap.env
-    ```
-
-    Contents:
-    ```
-    OP_SERVICE_ACCOUNT_TOKEN=ops_eyJ...
-    OP_ENVIRONMENT_ID=einqhwbbevqifrwwxl66hvitpm
-    ```
-
-    The quadlet path uses only `OP_SERVICE_ACCOUNT_TOKEN`; `OP_ENVIRONMENT_ID` is retained for Option B (sharing one bootstrap.env across both paths).
-
-3. Copy the unit files and the secret template into place:
-
-    ```sh
-    sudo install -m 0644 deploy/secrets.env.tmpl /etc/trmnl-ruuvi/secrets.env.tmpl
-    sudo $EDITOR /etc/trmnl-ruuvi/secrets.env.tmpl      # adjust op:// paths to your 1P layout
-
-    sudo cp deploy/quadlets/*.network deploy/quadlets/*.volume deploy/quadlets/*.container \
-            /etc/containers/systemd/
-    sudo cp deploy/systemd/op-inject.service /etc/systemd/system/
-
-    sudo systemctl daemon-reload
-    sudo systemctl enable --now podman-auto-update.timer
-    sudo systemctl start app.service
-    ```
-
-4. Smoke test:
-
-    ```sh
-    systemctl status op-inject.service app.service nightwatch-agent.service
-    curl -fsS http://localhost:8080/up
-    ```
-
-To force re-injection of secrets after rotating in 1Password: `sudo systemctl restart op-inject.service && sudo systemctl restart app.service nightwatch-agent.service`. A plain `systemctl restart app.service` does **not** re-run op-inject — `RemainAfterExit=yes` keeps the oneshot active until explicitly restarted.
-
-`AutoUpdate=registry` is set on both containers and `podman-auto-update.timer` runs daily — new `:latest` images published by CI on merge to `main` get pulled and restarted automatically, with rollback if the new container fails to start.
-
-**Operational controls.** To pause auto-updates (e.g., to debug a regression without `:latest` moving under you): `sudo systemctl disable --now podman-auto-update.timer`. To pin to a specific image, edit the `Image=` line in `/etc/containers/systemd/app.container` to `ghcr.io/iler/trmnl-ruuvitag:<sha>`, then `sudo systemctl daemon-reload && sudo systemctl restart app.service`. Re-enable auto-updates with `sudo systemctl enable --now podman-auto-update.timer`.
+Why a separate repo: server configs (which 1Password environment ID, install paths, host-side systemd choices) belong with the operator, not with the app source.
 
 ### Option B — podman-compose with `op run`
 
