@@ -29,7 +29,7 @@ OP_ENV_ID ?= einqhwbbevqifrwwxl66hvitpm
 DC := op run --environment $(OP_ENV_ID) --no-masking -- docker compose
 DC_DEV := docker compose -f docker-compose.yml -f docker-compose.dev.yml
 
-.PHONY: up down build logs shell ps test dev dev-down dev-build dev-logs dev-shell dev-ps verify-quadlets
+.PHONY: up down build logs shell ps test dev dev-down dev-build dev-logs dev-shell dev-ps
 
 # ----- prod-like local -----
 
@@ -85,17 +85,3 @@ test: dev
 .env: .env.example
 	@test -f .env || cp .env.example .env
 	@touch .env
-
-# ----- prod (quadlets) -----
-
-# Validate quadlet unit files by running podman's quadlet generator in
-# --dryrun mode against deploy/quadlets/. Exits non-zero on any parse error.
-# Used by CI and by admins to sanity-check edits before copying files to
-# /etc/containers/systemd/ on a server.
-verify-quadlets:
-	@echo "==> Validating quadlet unit files..."
-	@docker run --rm \
-		-v $(PWD)/deploy/quadlets:/etc/containers/systemd:ro \
-		quay.io/podman/stable \
-		/usr/libexec/podman/quadlet --dryrun /tmp/out >/dev/null
-	@echo "    all quadlets parse cleanly"
