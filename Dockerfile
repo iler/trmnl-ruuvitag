@@ -11,8 +11,13 @@
 # container without a `docker compose cp` round-trip.
 # ============================================================
 
-# ----- base: shared FrankenPHP image + S6 service + entrypoints -----
-FROM ghcr.io/serversideup/php:8.5-frankenphp AS base
+# ----- base: shared FrankenPHP image + entrypoints -----
+# Using the Alpine variant of serversideup's frankenphp image — same Caddy +
+# FrankenPHP + PHP stack, just on Alpine instead of Debian trixie. Cuts the
+# base image from ~858 MB to ~291 MB with no Dockerfile/runtime changes:
+# entrypoint, Caddyfile, frankenphp binary location, and PHP extension set
+# are identical between variants.
+FROM ghcr.io/serversideup/php:8.5-frankenphp-alpine AS base
 WORKDIR /var/www/html
 
 # S6 service for the scheduler (webhook strategy needs this)
