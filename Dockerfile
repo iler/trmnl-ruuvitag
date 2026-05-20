@@ -20,14 +20,6 @@
 FROM ghcr.io/serversideup/php:8.5-frankenphp-alpine AS base
 WORKDIR /var/www/html
 
-# S6 service for the scheduler (webhook strategy needs this)
-COPY --chown=www-data:www-data \
-     ./docker/etc/s6-overlay/s6-rc.d/laravel-schedule \
-     /etc/s6-overlay/s6-rc.d/laravel-schedule
-COPY --chown=www-data:www-data \
-     ./docker/etc/s6-overlay/s6-rc.d/user/contents.d \
-     /etc/s6-overlay/s6-rc.d/user/contents.d
-
 # Custom entrypoint scripts (key:generate, migrate, ruuvi:sync-sensors, caches).
 # The base image runs anything executable in /etc/entrypoint.d/ in alphanumeric
 # order before launching the main process.
