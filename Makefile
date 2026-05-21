@@ -1,17 +1,18 @@
 # Two parallel workflows:
 #
 # 1. PROD-LIKE LOCAL — `make up` / `make down` / etc.
-#    Builds the `prod` Dockerfile stage. Wraps `docker compose` with
-#    `op run --environment` so the 1Password Environment is the single
-#    source of truth for app secrets in both local and server contexts.
-#    On macOS, `op` authenticates via the 1Password desktop app
-#    (biometric / system auth), so no service-account token is needed
-#    locally.
+#    Builds the `prod` Dockerfile stage. With OP_ENV_ID exported, every
+#    docker compose call is wrapped with `op run --environment` so the
+#    1Password Environment is the single source of truth for app secrets.
+#    Without OP_ENV_ID, compose reads ./.env directly. On macOS, `op`
+#    authenticates via the 1Password desktop app (biometric / system
+#    auth) when in use, so no service-account token is needed locally.
 #
-#    Server-side, the equivalent `op run --environment` call is made by
-#    the systemd unit / launcher around `podman-compose -f
-#    docker-compose.prod.yml` using a service-account token from
-#    /etc/trmnl-ruuvi/bootstrap.env.
+#    Server-side, the equivalent `op run --environment` wrap is provided
+#    by the systemd unit / launcher around `podman-compose -f
+#    docker-compose.prod.yml`. Alternatively, the server can run from a
+#    plain /etc/trmnl-ruuvi/app.env loaded via EnvironmentFile, with no
+#    `op` on the host — see README "Server deploy".
 #
 # 2. DEV — `make dev` / `make test` / etc.
 #    Builds the `dev` Dockerfile stage and overlays
