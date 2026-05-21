@@ -25,8 +25,12 @@
 # pattern triggered two distinct FIFO bugs on 1Password's side that made
 # the mount unusable. Filed upstream: <link when available>.
 
-OP_ENV_ID ?= einqhwbbevqifrwwxl66hvitpm
-DC := op run --environment $(OP_ENV_ID) --no-masking -- docker compose
+# Empty default: developers who use 1Password export OP_ENV_ID from their
+# shell / direnv. With it set, every docker compose call is wrapped with
+# `op run --environment`. Without it, compose reads ./.env directly via
+# its built-in ${VAR} substitution.
+OP_ENV_ID ?=
+DC := $(if $(OP_ENV_ID),op run --environment $(OP_ENV_ID) --no-masking --,) docker compose
 DC_DEV := docker compose -f docker-compose.yml -f docker-compose.dev.yml
 
 .PHONY: up down build logs shell ps test dev dev-down dev-build dev-logs dev-shell dev-ps
