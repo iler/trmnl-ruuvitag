@@ -51,7 +51,13 @@ endif
 # ----- prod-like local -----
 
 up: _check-op .env
-	@$(DC) up -d
+	@if [ -z "$(strip $(OP_ENV_ID))" ] && ! grep -qE '^RUUVI_API_TOKEN=.+' .env; then \
+		echo "RUUVI_API_TOKEN is empty in .env."; \
+		echo "Edit .env (set RUUVI_API_TOKEN and TRMNL_WEBHOOK_URL), then re-run 'make up'."; \
+		echo "Or export OP_ENV_ID to pull secrets from a 1Password Environment."; \
+	else \
+		$(DC) up -d; \
+	fi
 
 down: _check-op
 	@$(DC) down
