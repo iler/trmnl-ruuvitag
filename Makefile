@@ -1,17 +1,18 @@
 # Two parallel workflows:
 #
 # 1. PROD-LIKE LOCAL — `make up` / `make down` / etc.
-#    Builds the `prod` Dockerfile stage. Wraps `docker compose` with
-#    `op run --environment` so the 1Password Environment is the single
-#    source of truth for app secrets in both local and server contexts.
-#    On macOS, `op` authenticates via the 1Password desktop app
-#    (biometric / system auth), so no service-account token is needed
-#    locally.
+#    Builds the `prod` Dockerfile stage. With OP_ENV_ID exported, every
+#    docker compose call is wrapped with `op run --environment` so the
+#    1Password Environment is the single source of truth for app secrets.
+#    Without OP_ENV_ID, compose reads ./.env directly. On macOS, `op`
+#    authenticates via the 1Password desktop app (biometric / system
+#    auth) when in use, so no service-account token is needed locally.
 #
-#    Server-side, the equivalent `op run --environment` call is made by
-#    the systemd unit / launcher around `podman-compose -f
-#    docker-compose.prod.yml` using a service-account token from
-#    /etc/trmnl-ruuvi/bootstrap.env.
+#    Server-side, the equivalent `op run --environment` wrap is provided
+#    by the systemd unit / launcher around `podman-compose -f
+#    docker-compose.prod.yml`. Alternatively, the server can run from a
+#    plain /etc/trmnl-ruuvi/app.env loaded via EnvironmentFile, with no
+#    `op` on the host — see README "Server deploy".
 #
 # 2. DEV — `make dev` / `make test` / etc.
 #    Builds the `dev` Dockerfile stage and overlays
@@ -25,31 +26,63 @@
 # pattern triggered two distinct FIFO bugs on 1Password's side that made
 # the mount unusable. Filed upstream: <link when available>.
 
-OP_ENV_ID ?= einqhwbbevqifrwwxl66hvitpm
-DC := op run --environment $(OP_ENV_ID) --no-masking -- docker compose
+# Empty default: developers who use 1Password export OP_ENV_ID from their
+# shell / direnv. With it set, every docker compose call is wrapped with
+# `op run --environment`. Without it, compose reads ./.env directly via
+# its built-in ${VAR} substitution.
+OP_ENV_ID ?=
+DC := $(if $(OP_ENV_ID),op run --environment $(OP_ENV_ID) --no-masking --,) docker compose
 DC_DEV := docker compose -f docker-compose.yml -f docker-compose.dev.yml
 
-.PHONY: up down build logs shell ps test dev dev-down dev-build dev-logs dev-shell dev-ps
+# Preflight: if the user opted into 1Password by exporting OP_ENV_ID,
+# `op` must be reachable. Don't silently fall back to bare compose —
+# stale or wrong secrets would slip through unnoticed.
+.PHONY: _check-op
+_check-op:
+ifneq ($(strip $(OP_ENV_ID)),)
+	@command -v op >/dev/null 2>&1 || { \
+		echo "Error: OP_ENV_ID is set ($(OP_ENV_ID)) but 'op' is not on PATH."; \
+		echo "Install the 1Password CLI or unset OP_ENV_ID to use plain .env."; \
+		exit 1; \
+	}
+endif
+
+.PHONY: up down build logs shell ps test dev dev-down dev-build dev-logs dev-shell dev-ps _check-op key
 
 # ----- prod-like local -----
 
-up:
-	@$(DC) up -d
+up: _check-op .env
+	@if [ -z "$(strip $(OP_ENV_ID))" ] && ! grep -qE '^RUUVI_API_TOKEN=.+' .env; then \
+		echo "RUUVI_API_TOKEN is empty in .env."; \
+		echo "Edit .env (set RUUVI_API_TOKEN and TRMNL_WEBHOOK_URL), then re-run 'make up'."; \
+		echo "Or export OP_ENV_ID to pull secrets from a 1Password Environment."; \
+	else \
+		$(DC) up -d; \
+	fi
 
-down:
+down: _check-op
 	@$(DC) down
 
-build:
+build: _check-op .env
 	@$(DC) build
 
-logs:
+logs: _check-op
 	@$(DC) logs -f
 
-shell:
+shell: _check-op
 	@$(DC) exec app sh
 
-ps:
+ps: _check-op
 	@$(DC) ps
+
+# Generate a Laravel APP_KEY without needing PHP installed locally.
+# Prints `APP_KEY=base64:<32-random-bytes>` for the user to paste into .env.
+# Uses the same FrankenPHP base image the prod/dev stages build on; pulled
+# on first run, cached thereafter.
+key:
+	@docker run --rm --entrypoint php \
+		ghcr.io/serversideup/php:8.5-frankenphp-alpine -r \
+		'echo "APP_KEY=base64:".base64_encode(random_bytes(32)).PHP_EOL;'
 
 # ----- dev (no op run needed) -----
 
