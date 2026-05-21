@@ -46,7 +46,7 @@ ifneq ($(strip $(OP_ENV_ID)),)
 	}
 endif
 
-.PHONY: up down build logs shell ps test dev dev-down dev-build dev-logs dev-shell dev-ps _check-op
+.PHONY: up down build logs shell ps test dev dev-down dev-build dev-logs dev-shell dev-ps _check-op key
 
 # ----- prod-like local -----
 
@@ -73,6 +73,15 @@ shell: _check-op
 
 ps: _check-op
 	@$(DC) ps
+
+# Generate a Laravel APP_KEY without needing PHP installed locally.
+# Prints `APP_KEY=base64:<32-random-bytes>` for the user to paste into .env.
+# Uses the same FrankenPHP base image the prod/dev stages build on; pulled
+# on first run, cached thereafter.
+key:
+	@docker run --rm --entrypoint php \
+		ghcr.io/serversideup/php:8.5-frankenphp-alpine -r \
+		'echo "APP_KEY=base64:".base64_encode(random_bytes(32)).PHP_EOL;'
 
 # ----- dev (no op run needed) -----
 
