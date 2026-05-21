@@ -52,6 +52,8 @@ For shared or long-lived setups (and the server), keep secrets in a 1Password En
 export OP_ENV_ID=einqhwbbevqifrwwxl66hvitpm   # in ~/.zshrc, direnv, etc.
 ```
 
+(On the server, the same value lives in `bootstrap.env` under the longer name `OP_ENVIRONMENT_ID` — see "Server deploy" below.)
+
 With `OP_ENV_ID` set, every `make` target above wraps `docker compose` with `op run --environment $OP_ENV_ID --`. The 1Password desktop app + `op` CLI authenticate via system biometrics — no service-account token is needed locally.
 
 If `OP_ENV_ID` is set but `op` isn't on `PATH`, `make` fails with a clear preflight error rather than silently falling back to `.env`.
