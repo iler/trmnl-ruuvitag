@@ -33,26 +33,39 @@ OP_ENV_ID ?=
 DC := $(if $(OP_ENV_ID),op run --environment $(OP_ENV_ID) --no-masking --,) docker compose
 DC_DEV := docker compose -f docker-compose.yml -f docker-compose.dev.yml
 
-.PHONY: up down build logs shell ps test dev dev-down dev-build dev-logs dev-shell dev-ps
+# Preflight: if the user opted into 1Password by exporting OP_ENV_ID,
+# `op` must be reachable. Don't silently fall back to bare compose —
+# stale or wrong secrets would slip through unnoticed.
+.PHONY: _check-op
+_check-op:
+ifneq ($(strip $(OP_ENV_ID)),)
+	@command -v op >/dev/null 2>&1 || { \
+		echo "Error: OP_ENV_ID is set ($(OP_ENV_ID)) but 'op' is not on PATH."; \
+		echo "Install the 1Password CLI or unset OP_ENV_ID to use plain .env."; \
+		exit 1; \
+	}
+endif
+
+.PHONY: up down build logs shell ps test dev dev-down dev-build dev-logs dev-shell dev-ps _check-op
 
 # ----- prod-like local -----
 
-up:
+up: _check-op .env
 	@$(DC) up -d
 
-down:
+down: _check-op
 	@$(DC) down
 
-build:
+build: _check-op .env
 	@$(DC) build
 
-logs:
+logs: _check-op
 	@$(DC) logs -f
 
-shell:
+shell: _check-op
 	@$(DC) exec app sh
 
-ps:
+ps: _check-op
 	@$(DC) ps
 
 # ----- dev (no op run needed) -----
