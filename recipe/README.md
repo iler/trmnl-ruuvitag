@@ -186,7 +186,13 @@ Swap `screen--lg` for `screen--md screen--1bit` and drop the style attribute to
 check the small layout the same way.
 
 This does not reproduce `text_scale: large`, so the device is still the last
-word. The TRMNL MCP server (`.mcp.json`) is the quickest way to check the real
+word.
+
+**Mashup sizes do not preview reliably at all.** Adding `screen--v2` renders
+half layouts about 1.8x too large; setting `--screen-w` / `--screen-h` by hand
+instead renders them blank, because `.layout` takes the full screen width while
+the half view is narrower. Neither matches the device. Check `half_horizontal`
+and `half_vertical` on real hardware, not here. The TRMNL MCP server (`.mcp.json`) is the quickest way to check the real
 thing: `MergeVariablesShowTool` for what the transform produced and
 `IntegrationsLogsTool` for the render appearance and any transform error. Its
 screenshot tool returns a 160x96 thumbnail, which is too small to judge a

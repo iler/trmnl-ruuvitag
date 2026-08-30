@@ -1,12 +1,15 @@
 {%- comment -%}
-  Left or right half of a side-by-side mashup. Taller and narrower than the
-  horizontal half, so six sensors fit as cards rather than four as lines.
+  Left or right half of a side-by-side mashup.
+
+  Below lg the half is about 390x480 and holds six compact cards. On TRMNL X
+  it is roughly 520x780, which takes two columns of the full screen's cards —
+  the compact version stretched to that width overflowed on both axes.
 {%- endcomment -%}
 
 {%- if fault != '' -%}
   {% render 'notice', headline: 'Ruuvi', detail: fault %}
 {%- else -%}
-  <div class="layout layout--col">
+  <div class="layout layout--col lg:hidden">
     <span class="title title--small">Indoor sensors</span>
     <div class="grid grid--cols-2 gap--small">
       {%- for sensor in featured limit: 6 -%}
@@ -24,6 +27,15 @@
             </span>
           {%- endif -%}
         </div>
+      {%- endfor -%}
+    </div>
+  </div>
+
+  <div class="layout layout--col hidden lg:flex ruuvi">
+    <div class="grid grid--cols-2 gap--small ruuvi__grid">
+      {%- for sensor in featured limit: 6 -%}
+        {%- assign rank_label = forloop.index | prepend: '0' -%}
+        {% render 'sensor_card', sensor: sensor, rank: forloop.index, rank_label: rank_label %}
       {%- endfor -%}
     </div>
   </div>
