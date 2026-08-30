@@ -1,0 +1,173 @@
+{%- comment -%}
+  Prepended to every layout, so the assigns below are in scope for
+  full / half_horizontal / half_vertical / quadrant.
+
+  Merge data comes from src/transform.js:
+    fault       non-empty when the poll or the account is the problem
+    sensors     every sensor, in the order Ruuvi returns them
+    featured    the same sensors in the installer's priority order
+    unmatched   priority entries that matched no sensor
+    updated_at  "YYYY-MM-DD HH:MM" in the viewer's zone
+    stats       { total, alarms, low_battery, stale }
+
+  Layouts read `featured`, never `sensors` — that is what makes the priority
+  field steer the small screens. `sensors` stays available for a layout that
+  wants Ruuvi's own order.
+{%- endcomment -%}
+
+{%- comment -%}
+  Custom fields (see settings.yml) are consumed in src/transform.js, not here:
+    ruuvi_token          authenticates the poll, via polling_headers
+    featured_sensors     orders `featured`, and fills `unmatched`
+    stale_after_minutes  decides is_stale, and so status
+  `trmnlp lint` only scans markup and the polling settings for field names, so
+  without this note it reports the last two as unused.
+{%- endcomment -%}
+
+{%- assign primary = featured | first -%}
+
+{%- comment -%}
+  Staleness is drawn with the framework's gray text rather than opacity:
+  opacity dithers badly on e-ink, and TRMNL's recipe review calls it out.
+{%- endcomment -%}
+
+{%- comment -%} Centred message, used for both the fault and empty states. {%- endcomment -%}
+{% template notice %}
+  <div class="layout layout--col layout--center">
+    <span class="value value--small">{{ headline }}</span>
+    <span class="label">{{ detail }}</span>
+  </div>
+{% endtemplate %}
+
+{%- comment -%}
+  Small chips for a sensor's exceptional states. {% render %} is scope
+  isolated, so the sensor has to be passed in explicitly.
+{%- endcomment -%}
+{% template sensor_flags %}
+  {%- if sensor.alarm %}<span class="label label--small label--outline">{{ sensor.alarm }}</span>{% endif -%}
+  {%- if sensor.battery_low %}<span class="label label--small label--outline">bat</span>{% endif -%}
+  {%- if sensor.is_stale %}<span class="label label--small label--gray">stale</span>{% endif -%}
+{% endtemplate %}
+
+{%- comment -%}
+  One compact line: name on the left, readings on the right. Used by both
+  half layouts, which differ only in how many lines fit and whether there is
+  room for humidity.
+{%- endcomment -%}
+{% template sensor_line %}
+  <div class="flex flex--row gap--small stretch-x{% if sensor.is_stale %} text--gray-30{% endif %}">
+    <span class="label stretch-x" data-clamp="1">{{ sensor.name }}</span>
+    {% render 'sensor_flags', sensor: sensor %}
+    {%- if sensor.status == 'no_data' -%}
+      <span class="value value--xsmall">&mdash;</span>
+    {%- else -%}
+      <span class="value value--small value--tnums">{{ sensor.temperature }}&deg;</span>
+      {%- if with_humidity -%}
+        <span class="value value--xsmall value--tnums">{{ sensor.humidity | default: '&mdash;' }}%</span>
+      {%- endif -%}
+    {%- endif -%}
+  </div>
+{% endtemplate %}
+
+{%- comment -%}
+  Lucide icons (v1.16.0, ISC), inlined because a plugin cannot reference local
+  assets. Sized by the caller; `currentColor` keeps them in step with the text
+  around them, including the gray a stale card is drawn in.
+{%- endcomment -%}
+{% template icon %}
+  {%- assign px = size | default: 24 -%}
+  <svg class="ruuvi-icon" xmlns="http://www.w3.org/2000/svg" width="{{ px }}" height="{{ px }}"
+       viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+    {%- case name -%}
+      {%- when 'thermometer' -%}
+        <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />
+      {%- when 'thermometer-sun' -%}
+        <path d="M12 2v2" /><path d="M12 8a4 4 0 0 0-1.645 7.647" /><path d="M2 12h2" />
+        <path d="M20 14.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0z" />
+        <path d="m4.93 4.93 1.41 1.41" /><path d="m6.34 17.66-1.41 1.41" />
+      {%- when 'thermometer-snowflake' -%}
+        <path d="m10 20-1.25-2.5L6 18" /><path d="M10 4 8.75 6.5 6 6" /><path d="M10.585 15H10" />
+        <path d="M2 12h6.5L10 9" /><path d="M20 14.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0z" />
+        <path d="m4 10 1.5 2L4 14" /><path d="m7 21 3-6-1.5-3" /><path d="m7 3 3 6h2" />
+      {%- when 'battery-full' -%}
+        <path d="M10 10v4" /><path d="M14 10v4" /><path d="M22 14v-4" /><path d="M6 10v4" />
+        <rect x="2" y="6" width="16" height="12" rx="2" />
+      {%- when 'battery-medium' -%}
+        <path d="M10 14v-4" /><path d="M22 14v-4" /><path d="M6 14v-4" />
+        <rect x="2" y="6" width="16" height="12" rx="2" />
+      {%- when 'battery-low' -%}
+        <path d="M22 14v-4" /><path d="M6 14v-4" />
+        <rect x="2" y="6" width="16" height="12" rx="2" />
+      {%- when 'battery' -%}
+        <path d="M22 14v-4" /><rect x="2" y="6" width="16" height="12" rx="2" />
+      {%- when 'droplet' -%}
+        <path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z" />
+      {%- when 'gauge' -%}
+        <path d="m12 14 4-4" /><path d="M3.34 19a10 10 0 1 1 17.32 0" />
+      {%- when 'clock' -%}
+        <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+      {%- when 'triangle-alert' -%}
+        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+        <path d="M12 9v4" /><path d="M12 17h.01" />
+    {%- endcase -%}
+  </svg>
+{% endtemplate %}
+
+{%- comment -%}
+  One sensor as a card, for the large-screen grid in full.liquid.
+
+  The flagged modifier replaces the stylesheet's `:has()` rule from the Blade
+  original — the condition is known here, so the class can just be written.
+{%- endcomment -%}
+{% template sensor_card %}
+  <article class="ruuvi-card py--4 px--5 rounded--small
+      {%- if rank == 1 %} ruuvi-card--primary{% endif -%}
+      {%- if sensor.alarm or sensor.battery_low %} ruuvi-card--flagged{% endif -%}
+      {%- if sensor.is_stale %} text--gray-30{% endif -%}">
+    <div class="flex flex--row flex--center-y gap--xsmall ruuvi-card__head">
+      <span class="label label--small label--gray stretch-x">{{ rank_label }}</span>
+      {%- if sensor.alarm -%}
+        <span class="label label--small label--error">{% render 'icon', name: 'triangle-alert', size: 14 %} {{ sensor.alarm }}</span>
+      {%- endif -%}
+      {%- if sensor.is_stale -%}
+        <span class="label label--small label--gray-out">{% render 'icon', name: 'clock', size: 14 %} stale</span>
+      {%- endif -%}
+      {%- if sensor.battery_level == 'low' -%}
+        <span class="label label--small label--warning">low bat</span>
+      {%- endif -%}
+      {% render 'icon', name: sensor.battery_icon, size: 22 %}
+    </div>
+
+    <span class="title title--large ruuvi-card__name" data-clamp="2">{{ sensor.name }}</span>
+
+    {%- if sensor.status == 'no_data' -%}
+      <div class="ruuvi-card__hero">
+        {% render 'icon', name: 'thermometer', size: 32 %}
+        <span class="value value--xxlarge">&mdash;</span>
+      </div>
+      <span class="label label--small label--gray">awaiting reading</span>
+    {%- else -%}
+      <div class="ruuvi-card__hero">
+        {% render 'icon', name: sensor.temp_icon, size: 32 %}
+        <div class="flex flex--row gap--xsmall ruuvi-card__temp">
+          <span class="value value--xxlarge value--tnums">{{ sensor.temperature }}</span>
+          <span class="value value--base">&deg;C</span>
+        </div>
+      </div>
+
+      <div class="flex flex--row flex--between flex--bottom pt--2 ruuvi-card__stats">
+        <div class="flex flex--col">
+          <span class="value value--large value--tnums">{{ sensor.humidity | default: '&mdash;' }}<span class="value value--small">%</span></span>
+          <span class="label label--small label--gray">{% render 'icon', name: 'droplet', size: 12 %} Humidity</span>
+        </div>
+        <div class="flex flex--col ruuvi-card__stat--right">
+          <span class="value value--large value--tnums">{{ sensor.pressure_hpa | default: '&mdash;' }}</span>
+          <span class="label label--small label--gray">{% render 'icon', name: 'gauge', size: 12 %} hPa</span>
+        </div>
+      </div>
+
+      <span class="label label--small label--gray">read {{ sensor.measured_at }}</span>
+    {%- endif -%}
+  </article>
+{% endtemplate %}
