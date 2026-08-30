@@ -1,0 +1,23 @@
+---
+# Local dev-server config for `trmnlp serve`. Not uploaded to TRMNL.
+watch:
+  - .trmnlp.yml
+  - src
+
+# Stand-ins for what the installer types into the plugin form. The token comes
+# from the environment so it stays out of version control:
+#   RUUVI_API_TOKEN=... trmnlp serve
+custom_fields:
+  ruuvi_token: "{{ env.RUUVI_API_TOKEN }}"
+  featured_sensors: ""
+  stale_after_minutes: "30"
+
+# Injected into trmnl.user, which is where the transform reads the display
+# zone from. Change it to check that timestamps follow the viewer, not the API.
+time_zone: Europe/Helsinki
+
+framework_version: 3.1.1
+
+# Runs src/transform.js locally through the bundled node, the same way the
+# hosted Serverless runtime does.
+transform_runtime: enabled

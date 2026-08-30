@@ -1,0 +1,71 @@
+#
+# TRMNL private plugin definition. `trmnlp pull` overwrites this file, so keep
+# edits here in sync with the hosted plugin once it exists.
+#
+# Add an `id:` once the plugin has been pushed for the first time — without one
+# `trmnlp push` creates a brand new plugin on every run.
+#
+---
+strategy: polling
+name: Ruuvi Indoor Climate
+description: RuuviTag sensors on your screen
+refresh_interval: 15
+polling_verb: get
+framework_version: 3.1.1
+no_screen_padding: 'no'
+dark_mode: 'no'
+
+# Decoding happens in src/transform.js. Ruuvi Cloud returns the raw BLE
+# advertisement as hex, which Liquid has no filters to unpack.
+serverless_language: node
+
+# One request per refresh. `alerts=true` is what lets the screen show a
+# triggered alarm without re-implementing Ruuvi's thresholds, delay and
+# hysteresis here.
+polling_url: https://network.ruuvi.com/sensors-dense?measurements=true&alerts=true
+
+# `&` separates headers; `=` separates key from value.
+polling_headers: Authorization=Bearer {{ ruuvi_token | strip }}&Accept=application/json
+
+custom_fields:
+  - keyname: ruuvi_token
+    field_type: password
+    name: Ruuvi Cloud API token
+    placeholder: Bearer token from Ruuvi Station
+    description: Read-only access to your Ruuvi Cloud account
+    help_text: >-
+      Ruuvi Station app > Settings > My Ruuvi account > Request an API token.
+      The plugin only reads sensors; it never writes to your account.
+    required: true
+
+  - keyname: featured_sensors
+    field_type: multi_string
+    name: Priority sensors
+    placeholder: Living room, Bedroom, Outdoor
+    description: Which sensors matter most, best first
+    help_text: >-
+      Sets the order, so the small layouts show the ones you name first — a
+      quadrant shows one, a half shows a few, the full screen shows them all.
+      Match a sensor by its Ruuvi name or its MAC address. Sensors you leave
+      out still appear, after the ones you list. Leave blank to keep the order
+      Ruuvi gives.
+    required: false
+
+  - keyname: stale_after_minutes
+    field_type: number
+    name: Stale after (minutes)
+    default: 30
+    description: When a reading stops counting as current
+    help_text: >-
+      A sensor with nothing newer than this is dimmed and marked stale, rather
+      than showing an old number as if it were live.
+    required: true
+
+  # Before publishing as a Recipe, add an author_bio field with your contact
+  # details — TRMNL's linter (Chef) expects one, and it is where installers
+  # look when the Ruuvi side of the setup confuses them. For example:
+  #
+  # - keyname: author_bio
+  #   field_type: author_bio
+  #   name: About
+  #   description: Built by <you> — <contact link>

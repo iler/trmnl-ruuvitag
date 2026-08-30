@@ -1,0 +1,31 @@
+{%- comment -%}
+  One quarter of a 2x2 mashup — room for a single sensor, so it shows the
+  first entry in the priority list.
+{%- endcomment -%}
+
+{%- if fault != '' -%}
+  {% render 'notice', headline: 'Ruuvi', detail: fault %}
+{%- else -%}
+  <div class="layout layout--col layout--center{% if primary.is_stale %} text--gray-30{% endif %}">
+    <div class="flex flex--row gap--xsmall">
+      <span class="label" data-clamp="1">{{ primary.name }}</span>
+      {% render 'sensor_flags', sensor: primary %}
+    </div>
+
+    {%- if primary.status == 'no_data' -%}
+      <span class="value value--large">&mdash;</span>
+      <span class="label label--small">no data</span>
+    {%- else -%}
+      <span class="value value--xlarge value--tnums">{{ primary.temperature }}&deg;C</span>
+      <div class="flex flex--row gap--medium">
+        <span class="value value--small value--tnums">{{ primary.humidity | default: '&mdash;' }}%</span>
+        <span class="value value--small value--tnums">{{ primary.pressure_hpa | default: '&mdash;' }} hPa</span>
+      </div>
+      <span class="label label--small">{{ primary.measured_at }}</span>
+    {%- endif -%}
+  </div>
+{%- endif -%}
+
+<div class="title_bar">
+  <span class="title">Ruuvi</span>
+</div>

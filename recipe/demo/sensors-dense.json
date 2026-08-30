@@ -1,0 +1,109 @@
+{
+  "result": "success",
+  "data": {
+    "sensors": [
+      {
+        "sensor": "CB:B8:33:4C:88:4F",
+        "name": "Living room",
+        "measurements": [
+          {
+            "data": "0201061BFF99040510B83B60C6F2000000000000AC96401006AABBCCDDEEFF",
+            "timestamp": 1788032234,
+            "rssi": -68
+          }
+        ],
+        "alerts": []
+      },
+      {
+        "sensor": "D4:1A:07:9C:22:B1",
+        "name": "Bedroom",
+        "measurements": [
+          {
+            "data": "0201061BFF9904050F004010C6ED0000000000009ED6400CEFAABBCCDDEEFF",
+            "timestamp": 1788032184,
+            "rssi": -68
+          }
+        ],
+        "alerts": []
+      },
+      {
+        "sensor": "E7:55:12:AF:70:3C",
+        "name": "Outdoor",
+        "measurements": [
+          {
+            "data": "0201061BFF990405FAEC8660C5D00000000000006E1640237FAABBCCDDEEFF",
+            "timestamp": 1788032114,
+            "rssi": -68
+          }
+        ],
+        "alerts": [
+          {
+            "type": "battery",
+            "enabled": true,
+            "triggered": true
+          }
+        ]
+      },
+      {
+        "sensor": "A2:90:66:1D:04:E8",
+        "name": "Sauna",
+        "measurements": [
+          {
+            "data": "0201061BFF9904053D5412C0C6DE000000000000A656400303AABBCCDDEEFF",
+            "timestamp": 1788032004,
+            "rssi": -68
+          }
+        ],
+        "alerts": [
+          {
+            "type": "temperature",
+            "enabled": true,
+            "triggered": true
+          }
+        ]
+      },
+      {
+        "sensor": "F0:3B:C1:88:9A:2D",
+        "name": "Freezer",
+        "measurements": [
+          {
+            "data": "0201061BFF990405F08860E0C6D40000000000007F964015A4AABBCCDDEEFF",
+            "timestamp": 1788032064,
+            "rssi": -68
+          }
+        ],
+        "alerts": []
+      },
+      {
+        "sensor": "9C:44:D0:2E:61:07",
+        "name": "Study (Air)",
+        "measurements": [
+          {
+            "data": "0201062BFF9904E111D044C0C6FC000000000000000000000000000000000000000000000000000000000000000000",
+            "timestamp": 1788032149,
+            "rssi": -68
+          }
+        ],
+        "alerts": []
+      },
+      {
+        "sensor": "B5:12:88:70:3F:44",
+        "name": "Garage",
+        "measurements": [
+          {
+            "data": "0201061BFF99040503346EF0C6C000000000000071D6400076AABBCCDDEEFF",
+            "timestamp": 1788025124,
+            "rssi": -68
+          }
+        ],
+        "alerts": []
+      },
+      {
+        "sensor": "77:0C:19:B4:52:8A",
+        "name": "Attic",
+        "measurements": [],
+        "alerts": []
+      }
+    ]
+  }
+}

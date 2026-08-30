@@ -1,0 +1,35 @@
+{%- comment -%}
+  Left or right half of a side-by-side mashup. Taller and narrower than the
+  horizontal half, so six sensors fit as cards rather than four as lines.
+{%- endcomment -%}
+
+{%- if fault != '' -%}
+  {% render 'notice', headline: 'Ruuvi', detail: fault %}
+{%- else -%}
+  <div class="layout layout--col">
+    <span class="title title--small">Indoor sensors</span>
+    <div class="grid grid--cols-2 gap--small">
+      {%- for sensor in featured limit: 6 -%}
+        <div class="item{% if sensor.is_stale %} text--gray-30{% endif %}">
+          <div class="flex flex--row gap--xsmall">
+            <span class="label label--small stretch-x" data-clamp="1">{{ sensor.name }}</span>
+            {% render 'sensor_flags', sensor: sensor %}
+          </div>
+          {%- if sensor.status == 'no_data' -%}
+            <span class="value value--xsmall">no data</span>
+          {%- else -%}
+            <span class="value value--medium value--tnums">{{ sensor.temperature }}&deg;C</span>
+            <span class="label label--small">
+              {{- sensor.humidity | default: '&mdash;' }}% &middot; {{ sensor.measured_at -}}
+            </span>
+          {%- endif -%}
+        </div>
+      {%- endfor -%}
+    </div>
+  </div>
+{%- endif -%}
+
+<div class="title_bar">
+  <span class="title">Ruuvi</span>
+  <span class="instance">{{ updated_at }}</span>
+</div>

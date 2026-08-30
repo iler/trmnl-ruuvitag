@@ -1,0 +1,206 @@
+<style>
+  /* Kept deliberately small: spacing, alignment, type, the grid and the corner
+     radius are all framework classes in the markup. What is left here is only
+     what the framework has no utility for — the card frame, the header rule,
+     and making the two card rows share the leftover height. */
+  .ruuvi { gap: 1.5rem; block-size: 100%; }
+
+  .ruuvi__header { border-block-end: 3px solid currentColor; }
+
+  /* Two equal rows, filling whatever height is left below the header. */
+  .ruuvi__grid { grid-auto-rows: 1fr; flex: 1 1 auto; min-block-size: 0; }
+
+  .ruuvi-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border: 1.5px solid currentColor;
+    min-inline-size: 0;
+    box-sizing: border-box;
+  }
+  .ruuvi-card--primary { border-width: 3px; }
+  /* A thick top edge marks a card that needs attention — legible from across
+     the room, where a small chip is not. Replaces the Blade stylesheet's
+     :has() rule; the condition is known in Liquid, so the class is just written. */
+  .ruuvi-card--flagged { border-block-start-width: 8px; }
+
+  .ruuvi-card__head { min-block-size: 1.75rem; }
+  .ruuvi-card__name { line-height: 1.05; text-wrap: balance; }
+
+  .ruuvi-card__hero {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0.25rem;
+    flex: 1 1 auto;
+  }
+  .ruuvi-card__temp { align-items: baseline; min-inline-size: 0; }
+
+  .ruuvi-card__stats { border-block-start: 1.5px solid currentColor; }
+  .ruuvi-card__stat--right { align-items: flex-end; }
+
+  .ruuvi-icon { display: inline-block; vertical-align: middle; }
+</style>
+
+{%- comment -%}
+  Full screen: the top-priority sensor as a hero, the rest as an indexed
+  ledger. The notice brings its own .layout — nesting one .layout inside
+  another collapses it and the e-ink render comes back blank — so the fault
+  branch sits outside the grid rather than inside it.
+{%- endcomment -%}
+
+{%- if fault != '' -%}
+  {% render 'notice', headline: 'Ruuvi', detail: fault %}
+{%- else -%}
+  <div class="layout layout--col lg:hidden">
+    <div class="grid grid--cols-12 gap--large stretch-y">
+
+      <div class="col col--span-5">
+        <div class="flex flex--col stretch-y gap--medium{% if primary.is_stale %} text--gray-30{% endif %}">
+          <div class="flex flex--col gap--xxsmall">
+            <span class="label label--small label--underline">Station 01</span>
+            <span class="title" data-clamp="1">{{ primary.name }}</span>
+          </div>
+
+          {%- if primary.status == 'no_data' -%}
+            <span class="value value--xlarge">&mdash;</span>
+            <span class="label label--small">awaiting reading</span>
+          {%- else -%}
+            <div class="flex flex--row gap--xsmall">
+              <span class="value value--xlarge value--tnums">{{ primary.temperature }}</span>
+              <span class="value value--medium">&deg;C</span>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="grid grid--cols-2 gap--medium">
+              <div class="flex flex--col gap--xxsmall">
+                <span class="label label--small">Humidity</span>
+                <span class="value value--medium value--tnums">{{ primary.humidity | default: '&mdash;' }}%</span>
+              </div>
+              <div class="flex flex--col gap--xxsmall">
+                <span class="label label--small">Pressure</span>
+                <span class="value value--medium value--tnums">{{ primary.pressure_hpa | default: '&mdash;' }}<span class="value value--xsmall"> hPa</span></span>
+              </div>
+            </div>
+
+            {%- comment -%} Pushes the footer line to the bottom of the column. {%- endcomment -%}
+            <div class="stretch-y"></div>
+
+            <div class="flex flex--row gap--xsmall">
+              <span class="label label--small">read at {{ primary.measured_at }}</span>
+              {% render 'sensor_flags', sensor: primary %}
+            </div>
+          {%- endif -%}
+        </div>
+      </div>
+
+      <div class="col col--span-7">
+        <table class="table table--small table--indexed">
+          <thead>
+            <tr>
+              <th></th>
+              <th><span class="title title--small">Station</span></th>
+              <th class="text--right"><span class="title title--small">&deg;C</span></th>
+              <th class="text--right"><span class="title title--small">RH</span></th>
+              <th class="text--right"><span class="title title--small">hPa</span></th>
+              <th class="text--right"><span class="title title--small">Time</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {%- comment -%} offset: 1 — the hero already has the first one. {%- endcomment -%}
+            {%- for sensor in featured offset: 1 -%}
+              <tr{% if sensor.is_stale %} class="text--gray-30"{% endif %}>
+                <td>
+                  <div class="meta">
+                    <span class="index">{{ forloop.index | plus: 1 }}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="flex flex--row gap--xsmall">
+                    <span data-clamp="1" class="label">{{ sensor.name }}</span>
+                    {% render 'sensor_flags', sensor: sensor %}
+                  </div>
+                </td>
+                {%- if sensor.status == 'no_data' -%}
+                  <td colspan="4" class="text--right"><span class="label label--small">no data</span></td>
+                {%- else -%}
+                  <td class="text--right"><span class="value value--small value--tnums">{{ sensor.temperature }}&deg;</span></td>
+                  <td class="text--right"><span class="value value--small value--tnums">{{ sensor.humidity | default: '&mdash;' }}%</span></td>
+                  <td class="text--right"><span class="value value--small value--tnums">{{ sensor.pressure_hpa | default: '&mdash;' }}</span></td>
+                  <td class="text--right"><span class="label label--small">{{ sensor.measured_at }}</span></td>
+                {%- endif -%}
+              </tr>
+            {%- else -%}
+              <tr>
+                <td colspan="6" class="text--center"><span class="label label--small">no additional stations</span></td>
+              </tr>
+            {%- endfor -%}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  {%- comment -%}
+    TRMNL X and other large screens: the same sensors as cards, ten of them,
+    which is what the 5x2 grid holds. Priority order decides which ten, and
+    anything past that is counted rather than dropped silently.
+
+    This is a second .layout rather than a responsive variant of the first —
+    a hero-plus-ledger and a card grid are different structures, not one
+    structure at two sizes, and only one is ever displayed.
+  {%- endcomment -%}
+  {%- assign flagged_total = stats.alarms | plus: stats.low_battery | plus: stats.stale -%}
+  {%- assign overflow_count = stats.total | minus: 10 -%}
+
+  <div class="layout layout--col hidden lg:flex ruuvi">
+    <header class="flex flex--row flex--between flex--bottom self--stretch pb--4 ruuvi__header">
+      <div class="flex flex--col gap--xxsmall">
+        <span class="title title--xxlarge">Indoor climate</span>
+        <span class="label label--base label--gray">
+          {{- stats.total }} stations &middot; {{ updated_at }} &middot; {{ time_zone_label -}}
+        </span>
+      </div>
+
+      <div class="flex flex--row flex--center-y gap--small ruuvi__pills">
+        {%- if stats.alarms > 0 -%}
+          <span class="label label--large label--error">{{ stats.alarms }} alert{% if stats.alarms > 1 %}s{% endif %}</span>
+        {%- endif -%}
+        {%- if stats.low_battery > 0 -%}
+          <span class="label label--large label--warning">{{ stats.low_battery }} low battery</span>
+        {%- endif -%}
+        {%- if stats.stale > 0 -%}
+          <span class="label label--large label--gray">{{ stats.stale }} stale</span>
+        {%- endif -%}
+        {%- if flagged_total == 0 and stats.total > 0 -%}
+          <span class="label label--large label--success">all nominal</span>
+        {%- endif -%}
+      </div>
+    </header>
+
+    <div class="grid grid--cols-5 gap--medium ruuvi__grid">
+      {%- for sensor in featured limit: 10 -%}
+        {%- assign rank_label = forloop.index | prepend: '0' -%}
+        {%- if forloop.index > 9 -%}{%- assign rank_label = forloop.index -%}{%- endif -%}
+        {% render 'sensor_card', sensor: sensor, rank: forloop.index, rank_label: rank_label %}
+      {%- endfor -%}
+    </div>
+
+    {%- if overflow_count > 0 -%}
+      <span class="label label--small label--gray">
+        {{- overflow_count }} more sensor{% if overflow_count > 1 %}s{% endif %} not shown &mdash; reorder them with the priority setting
+      </span>
+    {%- endif -%}
+  </div>
+{%- endif -%}
+
+<div class="title_bar">
+  <span class="title">Ruuvi &middot; Indoor climate</span>
+  <span class="instance">
+    {{- updated_at -}}
+    {%- if unmatched.size > 0 %} &nbsp;&middot;&nbsp; not found: {{ unmatched | join: ', ' }}{% endif -%}
+  </span>
+</div>
