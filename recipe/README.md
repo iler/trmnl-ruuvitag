@@ -73,13 +73,21 @@ To preview without a Ruuvi account, switch `strategy` to `static` and paste
 ## Deploying
 
 ```sh
-docker run -it --rm -v "$HOME/.config/trmnlp:/root/.config/trmnlp" -v "$PWD:/plugin" \
-    --entrypoint /bin/bash trmnl/trmnlp
-# inside: trmnlp login && trmnlp push
+docker run --rm -e TRMNL_API_KEY=... -v "$PWD:/plugin" trmnl/trmnlp push --force
 ```
 
-**Add the returned `id:` to `src/settings.yml` after the first push.** Without
-one, every `trmnlp push` creates another new plugin instead of updating this one.
+`push` uploads the templates, the transform, and everything in `settings.yml` —
+strategy, polling URL and headers, refresh interval, and the custom-field
+*definitions*. It replaces whatever the plugin held, which is why
+`src/settings.yml` carries the plugin `id`.
+
+`--force` answers the "settings will be overwritten, are you sure?" prompt.
+Without it, and without `-i` on `docker run`, `push` dies on a nil read because
+the container has no stdin. `-i` and answering by hand works too.
+
+What `push` does *not* upload is the field **values** — the Ruuvi token, the
+priority list, the stale threshold. Those belong to the plugin instance, so
+enter them in the TRMNL web UI after the first push. They survive later pushes.
 
 ## Before publishing as a Recipe
 
