@@ -184,9 +184,16 @@
       {%- if sensor.alarm or sensor.battery_low %} ruuvi-card--flagged{% endif -%}
       {%- if sensor.is_stale %} text--gray-30{% endif -%}">
     {%- comment -%}
-      The temperature icon rides in the head rather than beside the number.
-      Inline it cost ~26px of the hero row, and a two-digit negative such as
-      -20.2 needs every pixel of a 208px card.
+      The temperature icon rides in the head rather than beside the number,
+      which the hero row needs the width for.
+
+      Hero size is set by the widest reading, not by taste. value--tnums is
+      tabular, so the minus and the decimal point are full digit widths:
+      "-21.2" is five 0.6em glyphs, not three digits and two narrow marks.
+      At value--large (58px) that is ~174px inside a ~204px card, and
+      text_scale: large then overruns it — which is exactly what a freezer
+      tag did on the device, twice. value--base (38px) needs ~114px and
+      leaves room to spare.
     {%- endcomment -%}
     <div class="flex flex--row flex--center-y gap--xsmall ruuvi-card__head">
       <span class="label label--small label--gray">{{ rank_label }}</span>
@@ -213,12 +220,12 @@
     {%- endcomment -%}
     {%- if sensor.status == 'no_data' -%}
       <div class="flex flex--row flex--center-y gap--xsmall ruuvi-card__hero">
-        <span class="value value--large">&mdash;</span>
+        <span class="value value--base">&mdash;</span>
       </div>
       <span class="label label--small label--gray">awaiting reading</span>
     {%- else -%}
       <div class="flex flex--row gap--xsmall ruuvi-card__hero">
-        <span class="value value--large value--tnums">{{ sensor.temperature }}</span>
+        <span class="value value--base value--tnums">{{ sensor.temperature }}</span>
         <span class="value value--xsmall">&deg;C</span>
       </div>
 
