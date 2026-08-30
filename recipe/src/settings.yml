@@ -2,10 +2,10 @@
 # TRMNL private plugin definition. `trmnlp pull` overwrites this file, so keep
 # edits here in sync with the hosted plugin once it exists.
 #
-# Add an `id:` once the plugin has been pushed for the first time — without one
-# `trmnlp push` creates a brand new plugin on every run.
-#
 ---
+# `trmnlp push` updates the plugin with this id. Without it, every push would
+# create another new plugin instead of replacing this one.
+id: 461530
 strategy: polling
 name: Ruuvi Indoor Climate
 description: RuuviTag sensors on your screen
