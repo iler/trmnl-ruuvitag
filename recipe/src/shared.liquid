@@ -183,8 +183,15 @@
       {%- if rank == 1 %} ruuvi-card--primary{% endif -%}
       {%- if sensor.alarm or sensor.battery_low %} ruuvi-card--flagged{% endif -%}
       {%- if sensor.is_stale %} text--gray-30{% endif -%}">
+    {%- comment -%}
+      The temperature icon rides in the head rather than beside the number.
+      Inline it cost ~26px of the hero row, and a two-digit negative such as
+      -20.2 needs every pixel of a 208px card.
+    {%- endcomment -%}
     <div class="flex flex--row flex--center-y gap--xsmall ruuvi-card__head">
-      <span class="label label--small label--gray stretch-x">{{ rank_label }}</span>
+      <span class="label label--small label--gray">{{ rank_label }}</span>
+      {% render 'icon', name: sensor.temp_icon, size: 16 %}
+      <span class="stretch-x"></span>
       {%- if sensor.alarm -%}
         <span class="label label--small label--error">{% render 'icon', name: 'triangle-alert', size: 12 %} {{ sensor.alarm }}</span>
       {%- endif -%}
@@ -206,15 +213,13 @@
     {%- endcomment -%}
     {%- if sensor.status == 'no_data' -%}
       <div class="flex flex--row flex--center-y gap--xsmall ruuvi-card__hero">
-        {% render 'icon', name: 'thermometer', size: 22 %}
         <span class="value value--large">&mdash;</span>
       </div>
       <span class="label label--small label--gray">awaiting reading</span>
     {%- else -%}
       <div class="flex flex--row gap--xsmall ruuvi-card__hero">
-        {% render 'icon', name: sensor.temp_icon, size: 22 %}
         <span class="value value--large value--tnums">{{ sensor.temperature }}</span>
-        <span class="value value--small">&deg;C</span>
+        <span class="value value--xsmall">&deg;C</span>
       </div>
 
       <div class="flex flex--row flex--between flex--center-y pt--2 ruuvi-card__stats">
