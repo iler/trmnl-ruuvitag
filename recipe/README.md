@@ -85,6 +85,13 @@ strategy, polling URL and headers, refresh interval, and the custom-field
 Without it, and without `-i` on `docker run`, `push` dies on a nil read because
 the container has no stdin. `-i` and answering by hand works too.
 
+**`push` rewrites `src/settings.yml`.** It ends by writing the server's
+canonical YAML back over the local file, which strips these comments and adds
+the empty `oauth_*` keys the API returns. Restore the file from git after a
+push (`git checkout recipe/src/settings.yml`) unless you actually changed
+something, in which case commit the change and let the next push flatten it
+again.
+
 What `push` does *not* upload is the field **values** — the Ruuvi token, the
 priority list, the stale threshold. Those belong to the plugin instance, so
 enter them in the TRMNL web UI after the first push. They survive later pushes.
