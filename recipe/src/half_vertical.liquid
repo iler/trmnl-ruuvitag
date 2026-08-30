@@ -18,7 +18,7 @@
           {%- if sensor.status == 'no_data' -%}
             <span class="value value--xsmall">no data</span>
           {%- else -%}
-            <span class="value value--medium value--tnums">{{ sensor.temperature }}&deg;C</span>
+            <span class="value value--base value--tnums">{{ sensor.temperature }}&deg;C</span>
             <span class="label label--small">
               {{- sensor.humidity | default: '&mdash;' }}% &middot; {{ sensor.measured_at -}}
             </span>

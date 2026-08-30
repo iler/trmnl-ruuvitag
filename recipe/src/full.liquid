@@ -2,18 +2,18 @@
   /* Kept deliberately small: spacing, alignment, type, the grid and the corner
      radius are all framework classes in the markup. What is left here is only
      what the framework has no utility for — the card frame, the header rule,
-     and making the two card rows share the leftover height. */
-  .ruuvi { gap: 1.5rem; block-size: 100%; }
+     and making the card rows share the leftover height. */
+  .ruuvi { gap: 0.75rem; block-size: 100%; }
 
-  .ruuvi__header { border-block-end: 3px solid currentColor; }
+  .ruuvi__header { border-block-end: 2px solid currentColor; }
 
-  /* Two equal rows, filling whatever height is left below the header. */
+  /* Equal rows, filling whatever height is left below the header. */
   .ruuvi__grid { grid-auto-rows: 1fr; flex: 1 1 auto; min-block-size: 0; }
 
   .ruuvi-card {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.25rem;
     border: 1.5px solid currentColor;
     min-inline-size: 0;
     box-sizing: border-box;
@@ -24,21 +24,30 @@
      :has() rule; the condition is known in Liquid, so the class is just written. */
   .ruuvi-card--flagged { border-block-start-width: 8px; }
 
-  .ruuvi-card__head { min-block-size: 1.75rem; }
+  .ruuvi-card__head { min-block-size: 1.25rem; }
   .ruuvi-card__name { line-height: 1.05; text-wrap: balance; }
 
-  .ruuvi-card__hero {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 0.25rem;
-    flex: 1 1 auto;
-  }
-  .ruuvi-card__temp { align-items: baseline; min-inline-size: 0; }
+  /* Icon, number and unit share a baseline; the row absorbs the slack so the
+     stats and footer stay pinned to the bottom of the card. */
+  .ruuvi-card__hero { align-items: baseline; flex: 1 1 auto; min-inline-size: 0; }
 
   .ruuvi-card__stats { border-block-start: 1.5px solid currentColor; }
-  .ruuvi-card__stat--right { align-items: flex-end; }
+
+  /* Right-aligned columns otherwise butt together, running the "hPa" and
+     "Time" headers into one word. */
+  .ruuvi-ledger th, .ruuvi-ledger td { padding-inline-start: 0.35rem; }
+
+  /* data-clamp is driven by the framework's JS. Truncating in CSS as well
+     keeps a long room name on one line even where that script has not run,
+     and a wrapped name here costs the row below it. Capping the column also
+     buys back the width that ran "hPa" and "Time" together in the header. */
+  .ruuvi-ledger__name {
+    display: block;
+    max-inline-size: 14ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
   .ruuvi-icon { display: inline-block; vertical-align: middle; }
 </style>
@@ -69,7 +78,7 @@
           {%- else -%}
             <div class="flex flex--row gap--xsmall">
               <span class="value value--xlarge value--tnums">{{ primary.temperature }}</span>
-              <span class="value value--medium">&deg;C</span>
+              <span class="value value--base">&deg;C</span>
             </div>
 
             <div class="divider"></div>
@@ -77,11 +86,11 @@
             <div class="grid grid--cols-2 gap--medium">
               <div class="flex flex--col gap--xxsmall">
                 <span class="label label--small">Humidity</span>
-                <span class="value value--medium value--tnums">{{ primary.humidity | default: '&mdash;' }}%</span>
+                <span class="value value--base value--tnums">{{ primary.humidity | default: '&mdash;' }}%</span>
               </div>
               <div class="flex flex--col gap--xxsmall">
                 <span class="label label--small">Pressure</span>
-                <span class="value value--medium value--tnums">{{ primary.pressure_hpa | default: '&mdash;' }}<span class="value value--xsmall"> hPa</span></span>
+                <span class="value value--base value--tnums">{{ primary.pressure_hpa | default: '&mdash;' }}<span class="value value--xsmall"> hPa</span></span>
               </div>
             </div>
 
@@ -97,7 +106,7 @@
       </div>
 
       <div class="col col--span-7">
-        <table class="table table--small table--indexed">
+        <table class="table table--small table--indexed ruuvi-ledger">
           <thead>
             <tr>
               <th></th>
@@ -109,8 +118,12 @@
             </tr>
           </thead>
           <tbody>
-            {%- comment -%} offset: 1 — the hero already has the first one. {%- endcomment -%}
-            {%- for sensor in featured offset: 1 -%}
+            {%- comment -%}
+              offset: 1 — the hero already has the first one. The limit is what
+              fits 800x480 without the table running off the bottom and shoving
+              the hero off the top; anything past it is counted below.
+            {%- endcomment -%}
+            {%- for sensor in featured limit: 10 offset: 1 -%}
               <tr{% if sensor.is_stale %} class="text--gray-30"{% endif %}>
                 <td>
                   <div class="meta">
@@ -119,7 +132,7 @@
                 </td>
                 <td>
                   <div class="flex flex--row gap--xsmall">
-                    <span data-clamp="1" class="label">{{ sensor.name }}</span>
+                    <span data-clamp="1" class="label ruuvi-ledger__name">{{ sensor.name }}</span>
                     {% render 'sensor_flags', sensor: sensor %}
                   </div>
                 </td>
@@ -139,50 +152,58 @@
             {%- endfor -%}
           </tbody>
         </table>
+        {%- assign ledger_overflow = stats.total | minus: 11 -%}
+        {%- if ledger_overflow > 0 -%}
+          <span class="label label--small label--gray mt--1">
+            {{- ledger_overflow }} more sensor{% if ledger_overflow > 1 %}s{% endif %} not shown
+          </span>
+        {%- endif -%}
       </div>
 
     </div>
   </div>
 
   {%- comment -%}
-    TRMNL X and other large screens: the same sensors as cards, ten of them,
-    which is what the 5x2 grid holds. Priority order decides which ten, and
-    anything past that is counted rather than dropped silently.
+    TRMNL X and other large screens: the same sensors as cards, twelve of
+    them, which is what a 4x3 grid holds at the canvas the device actually
+    renders — 1872x1404 at scale_factor 1.8 is ~1040x780 in CSS pixels.
+    Priority order decides which twelve, and anything past that is counted
+    rather than dropped silently.
 
     This is a second .layout rather than a responsive variant of the first —
     a hero-plus-ledger and a card grid are different structures, not one
     structure at two sizes, and only one is ever displayed.
   {%- endcomment -%}
   {%- assign flagged_total = stats.alarms | plus: stats.low_battery | plus: stats.stale -%}
-  {%- assign overflow_count = stats.total | minus: 10 -%}
+  {%- assign overflow_count = stats.total | minus: 12 -%}
 
   <div class="layout layout--col hidden lg:flex ruuvi">
-    <header class="flex flex--row flex--between flex--bottom self--stretch pb--4 ruuvi__header">
+    <header class="flex flex--row flex--between flex--bottom self--stretch pb--2 ruuvi__header">
       <div class="flex flex--col gap--xxsmall">
-        <span class="title title--xxlarge">Indoor climate</span>
-        <span class="label label--base label--gray">
+        <span class="title title--large">Indoor climate</span>
+        <span class="label label--small label--gray">
           {{- stats.total }} stations &middot; {{ updated_at }} &middot; {{ time_zone_label -}}
         </span>
       </div>
 
       <div class="flex flex--row flex--center-y gap--small ruuvi__pills">
         {%- if stats.alarms > 0 -%}
-          <span class="label label--large label--error">{{ stats.alarms }} alert{% if stats.alarms > 1 %}s{% endif %}</span>
+          <span class="label label--error">{{ stats.alarms }} alert{% if stats.alarms > 1 %}s{% endif %}</span>
         {%- endif -%}
         {%- if stats.low_battery > 0 -%}
-          <span class="label label--large label--warning">{{ stats.low_battery }} low battery</span>
+          <span class="label label--warning">{{ stats.low_battery }} low battery</span>
         {%- endif -%}
         {%- if stats.stale > 0 -%}
-          <span class="label label--large label--gray">{{ stats.stale }} stale</span>
+          <span class="label label--gray">{{ stats.stale }} stale</span>
         {%- endif -%}
         {%- if flagged_total == 0 and stats.total > 0 -%}
-          <span class="label label--large label--success">all nominal</span>
+          <span class="label label--success">all nominal</span>
         {%- endif -%}
       </div>
     </header>
 
-    <div class="grid grid--cols-5 gap--medium ruuvi__grid">
-      {%- for sensor in featured limit: 10 -%}
+    <div class="grid grid--cols-4 gap--small ruuvi__grid">
+      {%- for sensor in featured limit: 12 -%}
         {%- assign rank_label = forloop.index | prepend: '0' -%}
         {%- if forloop.index > 9 -%}{%- assign rank_label = forloop.index -%}{%- endif -%}
         {% render 'sensor_card', sensor: sensor, rank: forloop.index, rank_label: rank_label %}
