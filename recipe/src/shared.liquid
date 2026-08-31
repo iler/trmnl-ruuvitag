@@ -24,6 +24,60 @@
   without this note it reports the last two as unused.
 {%- endcomment -%}
 
+<style>
+  /* Kept deliberately small: spacing, alignment, type, the grid and the corner
+     radius are all framework classes in the markup. What is left here is only
+     what the framework has no utility for — the card frame, the header rule,
+     and making the card rows share the leftover height. */
+  .ruuvi { gap: 0.75rem; block-size: 100%; }
+
+  .ruuvi__header { border-block-end: 2px solid currentColor; }
+
+  /* Equal rows, filling whatever height is left below the header. */
+  .ruuvi__grid { grid-auto-rows: 1fr; flex: 1 1 auto; min-block-size: 0; }
+
+  .ruuvi-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    border: 1.5px solid currentColor;
+    min-inline-size: 0;
+    box-sizing: border-box;
+  }
+  .ruuvi-card--primary { border-width: 3px; }
+  /* A thick top edge marks a card that needs attention — legible from across
+     the room, where a small chip is not. Replaces the Blade stylesheet's
+     :has() rule; the condition is known in Liquid, so the class is just written. */
+  .ruuvi-card--flagged { border-block-start-width: 8px; }
+
+  .ruuvi-card__head { min-block-size: 1.25rem; }
+  .ruuvi-card__name { line-height: 1.05; text-wrap: balance; }
+
+  /* Icon, number and unit share a baseline; the row absorbs the slack so the
+     stats and footer stay pinned to the bottom of the card. */
+  .ruuvi-card__hero { align-items: baseline; flex: 1 1 auto; min-inline-size: 0; }
+
+  .ruuvi-card__stats { border-block-start: 1.5px solid currentColor; }
+
+  /* Right-aligned columns otherwise butt together, running the "hPa" and
+     "Time" headers into one word. */
+  .ruuvi-ledger th, .ruuvi-ledger td { padding-inline-start: 0.35rem; }
+
+  /* data-clamp is driven by the framework's JS. Truncating in CSS as well
+     keeps a long room name on one line even where that script has not run,
+     and a wrapped name here costs the row below it. Capping the column also
+     buys back the width that ran "hPa" and "Time" together in the header. */
+  .ruuvi-ledger__name {
+    display: block;
+    max-inline-size: 14ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ruuvi-icon { display: inline-block; vertical-align: middle; }
+</style>
+
 {%- assign primary = featured | first -%}
 
 {%- comment -%}
@@ -117,54 +171,71 @@
 {%- comment -%}
   One sensor as a card, for the large-screen grid in full.liquid.
 
+  Sized for a ~240x190 box. That is what the device actually gives: it reports
+  1872x1404, but renders at scale_factor 1.8, so the CSS canvas is ~1040x780
+  and a 4-column grid leaves about 200px of content width per card.
+
   The flagged modifier replaces the stylesheet's `:has()` rule from the Blade
   original — the condition is known here, so the class can just be written.
 {%- endcomment -%}
 {% template sensor_card %}
-  <article class="ruuvi-card py--4 px--5 rounded--small
+  <article class="ruuvi-card py--3 px--4 rounded--small
       {%- if rank == 1 %} ruuvi-card--primary{% endif -%}
       {%- if sensor.alarm or sensor.battery_low %} ruuvi-card--flagged{% endif -%}
       {%- if sensor.is_stale %} text--gray-30{% endif -%}">
+    {%- comment -%}
+      The temperature icon rides in the head rather than beside the number,
+      which the hero row needs the width for.
+
+      Hero size is set by the widest reading, not by taste. value--tnums is
+      tabular, so the minus and the decimal point are full digit widths:
+      "-21.2" is five 0.6em glyphs, not three digits and two narrow marks.
+      At value--large (58px) that is ~174px inside a ~204px card, and
+      text_scale: large then overruns it — which is exactly what a freezer
+      tag did on the device, twice. value--base (38px) needs ~114px and
+      leaves room to spare.
+    {%- endcomment -%}
     <div class="flex flex--row flex--center-y gap--xsmall ruuvi-card__head">
-      <span class="label label--small label--gray stretch-x">{{ rank_label }}</span>
+      <span class="label label--small label--gray">{{ rank_label }}</span>
+      {% render 'icon', name: sensor.temp_icon, size: 16 %}
+      <span class="stretch-x"></span>
       {%- if sensor.alarm -%}
-        <span class="label label--small label--error">{% render 'icon', name: 'triangle-alert', size: 14 %} {{ sensor.alarm }}</span>
+        <span class="label label--small label--error">{% render 'icon', name: 'triangle-alert', size: 12 %} {{ sensor.alarm }}</span>
       {%- endif -%}
       {%- if sensor.is_stale -%}
-        <span class="label label--small label--gray-out">{% render 'icon', name: 'clock', size: 14 %} stale</span>
+        <span class="label label--small label--gray-out">{% render 'icon', name: 'clock', size: 12 %} stale</span>
       {%- endif -%}
-      {%- if sensor.battery_level == 'low' -%}
-        <span class="label label--small label--warning">low bat</span>
-      {%- endif -%}
-      {% render 'icon', name: sensor.battery_icon, size: 22 %}
+      {% render 'icon', name: sensor.battery_icon, size: 18 %}
     </div>
 
-    <span class="title title--large ruuvi-card__name" data-clamp="2">{{ sensor.name }}</span>
+    {%- comment -%}
+      One line, clamped. "Living room freezer" is 19 characters and a real
+      name; two lines here would cost the stats row its space.
+    {%- endcomment -%}
+    <span class="title title--small ruuvi-card__name" data-clamp="1">{{ sensor.name }}</span>
 
+    {%- comment -%}
+      Icon sits beside the number rather than above it. Stacked, it cost 24px
+      of height the card does not have.
+    {%- endcomment -%}
     {%- if sensor.status == 'no_data' -%}
-      <div class="ruuvi-card__hero">
-        {% render 'icon', name: 'thermometer', size: 32 %}
-        <span class="value value--xxlarge">&mdash;</span>
+      <div class="flex flex--row flex--center-y gap--xsmall ruuvi-card__hero">
+        <span class="value value--base">&mdash;</span>
       </div>
       <span class="label label--small label--gray">awaiting reading</span>
     {%- else -%}
-      <div class="ruuvi-card__hero">
-        {% render 'icon', name: sensor.temp_icon, size: 32 %}
-        <div class="flex flex--row gap--xsmall ruuvi-card__temp">
-          <span class="value value--xxlarge value--tnums">{{ sensor.temperature }}</span>
-          <span class="value value--base">&deg;C</span>
-        </div>
+      <div class="flex flex--row gap--xsmall ruuvi-card__hero">
+        <span class="value value--base value--tnums">{{ sensor.temperature }}</span>
+        <span class="value value--xsmall">&deg;C</span>
       </div>
 
-      <div class="flex flex--row flex--between flex--bottom pt--2 ruuvi-card__stats">
-        <div class="flex flex--col">
-          <span class="value value--large value--tnums">{{ sensor.humidity | default: '&mdash;' }}<span class="value value--small">%</span></span>
-          <span class="label label--small label--gray">{% render 'icon', name: 'droplet', size: 12 %} Humidity</span>
-        </div>
-        <div class="flex flex--col ruuvi-card__stat--right">
-          <span class="value value--large value--tnums">{{ sensor.pressure_hpa | default: '&mdash;' }}</span>
-          <span class="label label--small label--gray">{% render 'icon', name: 'gauge', size: 12 %} hPa</span>
-        </div>
+      <div class="flex flex--row flex--between flex--center-y pt--2 ruuvi-card__stats">
+        <span class="value value--small value--tnums">
+          {% render 'icon', name: 'droplet', size: 12 %} {{ sensor.humidity | default: '&mdash;' }}%
+        </span>
+        <span class="value value--small value--tnums">
+          {% render 'icon', name: 'gauge', size: 12 %} {{ sensor.pressure_hpa | default: '&mdash;' }}
+        </span>
       </div>
 
       <span class="label label--small label--gray">read {{ sensor.measured_at }}</span>

@@ -34,8 +34,8 @@ function rawv2({ temperature, humidity, pressure, batteryMv, sequence }) {
   return advertisement([
     0x05,
     ...int16(Math.round(temperature / 0.005)),
-    ...int16(Math.round(humidity / 0.0025)),
-    ...int16(pressure - 50000),
+    ...int16(humidity === null ? 0xffff : Math.round(humidity / 0.0025)),
+    ...int16(pressure === null ? 0xffff : pressure - 50000),
     ...int16(0), ...int16(0), ...int16(0),        // acceleration x/y/z
     ...int16(((batteryMv - 1600) << 5) | 22),     // battery + TX power (+4 dBm)
     0x40,                                          // movement counter
@@ -67,39 +67,50 @@ function sensor({ mac, name, hex, agoSeconds, alerts = [] }) {
 const alert = (type, triggered) => ({ type, enabled: true, triggered });
 
 const sensors = [
-  sensor({
-    mac: 'CB:B8:33:4C:88:4F', name: 'Living room', agoSeconds: 90,
-    hex: rawv2({ temperature: 21.4, humidity: 38, pressure: 100_930, batteryMv: 2980, sequence: 4102 }),
-  }),
-  sensor({
-    mac: 'D4:1A:07:9C:22:B1', name: 'Bedroom', agoSeconds: 140,
-    hex: rawv2({ temperature: 19.2, humidity: 41, pressure: 100_925, batteryMv: 2870, sequence: 3311 }),
-  }),
-  sensor({
-    mac: 'E7:55:12:AF:70:3C', name: 'Outdoor', agoSeconds: 210,
+  // Names are deliberately long. Real fleets use room names like
+  // "Olohuoneen pakastin", not "Kitchen", and short demo names hide layout
+  // problems that only appear on a real screen.
+  sensor({ mac: 'CB:B8:33:4C:88:4F', name: 'Living room', agoSeconds: 90,
+    hex: rawv2({ temperature: 21.4, humidity: 38, pressure: 100_930, batteryMv: 2980, sequence: 4102 }) }),
+  sensor({ mac: 'D4:1A:07:9C:22:B1', name: 'Main bedroom north', agoSeconds: 140,
+    hex: rawv2({ temperature: 19.2, humidity: 41, pressure: 100_925, batteryMv: 2870, sequence: 3311 }) }),
+  sensor({ mac: 'E7:55:12:AF:70:3C', name: 'Outdoor north wall', agoSeconds: 210,
     hex: rawv2({ temperature: -6.5, humidity: 86, pressure: 100_640, batteryMv: 2480, sequence: 9087 }),
-    alerts: [alert('battery', true)],
-  }),
-  sensor({
-    mac: 'A2:90:66:1D:04:E8', name: 'Sauna', agoSeconds: 320,
+    alerts: [alert('battery', true)] }),
+  sensor({ mac: 'A2:90:66:1D:04:E8', name: 'Sauna', agoSeconds: 320,
     hex: rawv2({ temperature: 78.5, humidity: 12, pressure: 100_910, batteryMv: 2930, sequence: 771 }),
-    alerts: [alert('temperature', true)],
-  }),
-  sensor({
-    mac: 'F0:3B:C1:88:9A:2D', name: 'Freezer', agoSeconds: 260,
-    hex: rawv2({ temperature: -19.8, humidity: 62, pressure: 100_900, batteryMv: 2620, sequence: 5540 }),
-  }),
-  sensor({
-    mac: '9C:44:D0:2E:61:07', name: 'Study (Air)', agoSeconds: 175,
-    hex: air({ temperature: 22.8, humidity: 44, pressure: 100_940 }),
-  }),
-  // Last heard from two hours ago — exercises the stale branch.
-  sensor({
-    mac: 'B5:12:88:70:3F:44', name: 'Garage', agoSeconds: 7200,
-    hex: rawv2({ temperature: 4.1, humidity: 71, pressure: 100_880, batteryMv: 2510, sequence: 118 }),
-  }),
-  // Claimed but never reported — exercises the no-data branch.
-  sensor({ mac: '77:0C:19:B4:52:8A', name: 'Attic', agoSeconds: 0, hex: null }),
+    alerts: [alert('temperature', true)] }),
+  // Freezer tags report neither humidity nor pressure, and the coldest
+  // reading is the widest string the hero has to hold.
+  sensor({ mac: 'F0:3B:C1:88:9A:2D', name: 'Living room freezer', agoSeconds: 260,
+    hex: rawv2({ temperature: -22.6, humidity: null, pressure: null, batteryMv: 2620, sequence: 5540 }) }),
+  sensor({ mac: '9C:44:D0:2E:61:07', name: 'Study (Ruuvi Air)', agoSeconds: 175,
+    hex: air({ temperature: 22.8, humidity: 44, pressure: 100_940 }) }),
+  sensor({ mac: 'B5:12:88:70:3F:44', name: 'Garage workbench', agoSeconds: 7200,
+    hex: rawv2({ temperature: 4.1, humidity: 71, pressure: 100_880, batteryMv: 2510, sequence: 118 }) }),
+  sensor({ mac: '77:0C:19:B4:52:8A', name: 'Attic hatch', agoSeconds: 0, hex: null }),
+  sensor({ mac: '31:A0:5C:6D:11:92', name: 'Kitchen worktop', agoSeconds: 120,
+    hex: rawv2({ temperature: 23.1, humidity: 39, pressure: 100_935, batteryMv: 2950, sequence: 2201 }) }),
+  sensor({ mac: '4E:77:2B:09:C4:6F', name: 'Upstairs hallway', agoSeconds: 165,
+    hex: rawv2({ temperature: 20.7, humidity: 43, pressure: 100_930, batteryMv: 2760, sequence: 8812 }) }),
+  sensor({ mac: '6A:31:F8:5E:2C:70', name: "Children's room", agoSeconds: 200,
+    hex: rawv2({ temperature: 20.1, humidity: 45, pressure: 100_928, batteryMv: 2840, sequence: 1907 }) }),
+  sensor({ mac: '8D:62:04:11:7B:33', name: 'Basement storage', agoSeconds: 240,
+    hex: rawv2({ temperature: 13.4, humidity: 68, pressure: 100_950, batteryMv: 2530, sequence: 660 }) }),
+  sensor({ mac: '2F:98:A3:47:D0:15', name: 'Utility room', agoSeconds: 190,
+    hex: rawv2({ temperature: 18.9, humidity: 52, pressure: 100_933, batteryMv: 2900, sequence: 4455 }) }),
+  sensor({ mac: 'C3:0B:7E:22:98:AC', name: 'Greenhouse', agoSeconds: 150,
+    hex: rawv2({ temperature: 27.3, humidity: 74, pressure: 100_915, batteryMv: 2690, sequence: 3120 }) }),
+  sensor({ mac: '5B:41:D9:63:0A:27', name: 'Wine cellar', agoSeconds: 280,
+    hex: rawv2({ temperature: 12.2, humidity: 63, pressure: 100_948, batteryMv: 2810, sequence: 990 }) }),
+  sensor({ mac: 'A9:17:6C:35:B2:5E', name: 'Guest bedroom east', agoSeconds: 210,
+    hex: rawv2({ temperature: 19.8, humidity: 42, pressure: 100_929, batteryMv: 2880, sequence: 7001 }) }),
+  sensor({ mac: '73:CE:20:88:41:D6', name: 'Boiler room', agoSeconds: 130,
+    hex: rawv2({ temperature: 31.6, humidity: 28, pressure: 100_940, batteryMv: 2960, sequence: 5321 }) }),
+  sensor({ mac: '18:D4:B7:5A:66:39', name: 'Balcony', agoSeconds: 230,
+    hex: rawv2({ temperature: -3.9, humidity: 81, pressure: 100_650, batteryMv: 2470, sequence: 2740 }) }),
+  sensor({ mac: 'E0:8A:35:C1:79:B4', name: 'Workshop', agoSeconds: 195,
+    hex: rawv2({ temperature: 16.5, humidity: 55, pressure: 100_922, batteryMv: 2720, sequence: 1580 }) }),
 ];
 
 process.stdout.write(JSON.stringify({ result: 'success', data: { sensors } }, null, 2) + '\n');

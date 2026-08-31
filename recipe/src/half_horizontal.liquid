@@ -1,17 +1,29 @@
 {%- comment -%}
-  Top or bottom half of a stacked mashup: four priority sensors as lines.
-  Which four is the installer's call — `featured` is ordered by the priority
-  field, so this shows the ones they named first.
+  Top or bottom half of a stacked mashup.
+
+  Two designs, the same split full.liquid makes. Below lg the half is about
+  800x230 and only compact lines fit. On TRMNL X it is roughly 1040x390 —
+  room for a row of the same cards the full screen uses, which is why the
+  sensor_line version alone looked lost there.
 {%- endcomment -%}
 
 {%- if fault != '' -%}
   {% render 'notice', headline: 'Ruuvi', detail: fault %}
 {%- else -%}
-  <div class="layout layout--col">
+  <div class="layout layout--col lg:hidden">
     <span class="title title--small">Indoor sensors</span>
     <div class="flex flex--col gap--small">
       {%- for sensor in featured limit: 4 -%}
         {% render 'sensor_line', sensor: sensor, with_humidity: true %}
+      {%- endfor -%}
+    </div>
+  </div>
+
+  <div class="layout layout--col hidden lg:flex ruuvi">
+    <div class="grid grid--cols-4 gap--small ruuvi__grid">
+      {%- for sensor in featured limit: 4 -%}
+        {%- assign rank_label = forloop.index | prepend: '0' -%}
+        {% render 'sensor_card', sensor: sensor, rank: forloop.index, rank_label: rank_label %}
       {%- endfor -%}
     </div>
   </div>

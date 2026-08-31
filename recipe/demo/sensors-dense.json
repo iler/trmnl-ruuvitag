@@ -8,7 +8,7 @@
         "measurements": [
           {
             "data": "0201061BFF99040510B83B60C6F2000000000000AC96401006AABBCCDDEEFF",
-            "timestamp": 1788032234,
+            "timestamp": 1788119462,
             "rssi": -68
           }
         ],
@@ -16,11 +16,11 @@
       },
       {
         "sensor": "D4:1A:07:9C:22:B1",
-        "name": "Bedroom",
+        "name": "Main bedroom north",
         "measurements": [
           {
             "data": "0201061BFF9904050F004010C6ED0000000000009ED6400CEFAABBCCDDEEFF",
-            "timestamp": 1788032184,
+            "timestamp": 1788119412,
             "rssi": -68
           }
         ],
@@ -28,11 +28,11 @@
       },
       {
         "sensor": "E7:55:12:AF:70:3C",
-        "name": "Outdoor",
+        "name": "Outdoor north wall",
         "measurements": [
           {
             "data": "0201061BFF990405FAEC8660C5D00000000000006E1640237FAABBCCDDEEFF",
-            "timestamp": 1788032114,
+            "timestamp": 1788119342,
             "rssi": -68
           }
         ],
@@ -50,7 +50,7 @@
         "measurements": [
           {
             "data": "0201061BFF9904053D5412C0C6DE000000000000A656400303AABBCCDDEEFF",
-            "timestamp": 1788032004,
+            "timestamp": 1788119232,
             "rssi": -68
           }
         ],
@@ -64,11 +64,11 @@
       },
       {
         "sensor": "F0:3B:C1:88:9A:2D",
-        "name": "Freezer",
+        "name": "Living room freezer",
         "measurements": [
           {
-            "data": "0201061BFF990405F08860E0C6D40000000000007F964015A4AABBCCDDEEFF",
-            "timestamp": 1788032064,
+            "data": "0201061BFF990405EE58FFFFFFFF0000000000007F964015A4AABBCCDDEEFF",
+            "timestamp": 1788119292,
             "rssi": -68
           }
         ],
@@ -76,11 +76,11 @@
       },
       {
         "sensor": "9C:44:D0:2E:61:07",
-        "name": "Study (Air)",
+        "name": "Study (Ruuvi Air)",
         "measurements": [
           {
             "data": "0201062BFF9904E111D044C0C6FC000000000000000000000000000000000000000000000000000000000000000000",
-            "timestamp": 1788032149,
+            "timestamp": 1788119377,
             "rssi": -68
           }
         ],
@@ -88,11 +88,11 @@
       },
       {
         "sensor": "B5:12:88:70:3F:44",
-        "name": "Garage",
+        "name": "Garage workbench",
         "measurements": [
           {
             "data": "0201061BFF99040503346EF0C6C000000000000071D6400076AABBCCDDEEFF",
-            "timestamp": 1788025124,
+            "timestamp": 1788112352,
             "rssi": -68
           }
         ],
@@ -100,8 +100,140 @@
       },
       {
         "sensor": "77:0C:19:B4:52:8A",
-        "name": "Attic",
+        "name": "Attic hatch",
         "measurements": [],
+        "alerts": []
+      },
+      {
+        "sensor": "31:A0:5C:6D:11:92",
+        "name": "Kitchen worktop",
+        "measurements": [
+          {
+            "data": "0201061BFF990405120C3CF0C6F7000000000000A8D6400899AABBCCDDEEFF",
+            "timestamp": 1788119432,
+            "rssi": -68
+          }
+        ],
+        "alerts": []
+      },
+      {
+        "sensor": "4E:77:2B:09:C4:6F",
+        "name": "Upstairs hallway",
+        "measurements": [
+          {
+            "data": "0201061BFF990405102C4330C6F2000000000000911640226CAABBCCDDEEFF",
+            "timestamp": 1788119387,
+            "rssi": -68
+          }
+        ],
+        "alerts": []
+      },
+      {
+        "sensor": "6A:31:F8:5E:2C:70",
+        "name": "Children's room",
+        "measurements": [
+          {
+            "data": "0201061BFF9904050FB44650C6F00000000000009B16400773AABBCCDDEEFF",
+            "timestamp": 1788119352,
+            "rssi": -68
+          }
+        ],
+        "alerts": []
+      },
+      {
+        "sensor": "8D:62:04:11:7B:33",
+        "name": "Basement storage",
+        "measurements": [
+          {
+            "data": "0201061BFF9904050A786A40C7060000000000007456400294AABBCCDDEEFF",
+            "timestamp": 1788119312,
+            "rssi": -68
+          }
+        ],
+        "alerts": []
+      },
+      {
+        "sensor": "2F:98:A3:47:D0:15",
+        "name": "Utility room",
+        "measurements": [
+          {
+            "data": "0201061BFF9904050EC45140C6F5000000000000A296401167AABBCCDDEEFF",
+            "timestamp": 1788119362,
+            "rssi": -68
+          }
+        ],
+        "alerts": []
+      },
+      {
+        "sensor": "C3:0B:7E:22:98:AC",
+        "name": "Greenhouse",
+        "measurements": [
+          {
+            "data": "0201061BFF990405155473A0C6E30000000000008856400C30AABBCCDDEEFF",
+            "timestamp": 1788119402,
+            "rssi": -68
+          }
+        ],
+        "alerts": []
+      },
+      {
+        "sensor": "5B:41:D9:63:0A:27",
+        "name": "Wine cellar",
+        "measurements": [
+          {
+            "data": "0201061BFF99040509886270C70400000000000097564003DEAABBCCDDEEFF",
+            "timestamp": 1788119272,
+            "rssi": -68
+          }
+        ],
+        "alerts": []
+      },
+      {
+        "sensor": "A9:17:6C:35:B2:5E",
+        "name": "Guest bedroom east",
+        "measurements": [
+          {
+            "data": "0201061BFF9904050F7841A0C6F1000000000000A016401B59AABBCCDDEEFF",
+            "timestamp": 1788119342,
+            "rssi": -68
+          }
+        ],
+        "alerts": []
+      },
+      {
+        "sensor": "73:CE:20:88:41:D6",
+        "name": "Boiler room",
+        "measurements": [
+          {
+            "data": "0201061BFF99040518B02BC0C6FC000000000000AA164014C9AABBCCDDEEFF",
+            "timestamp": 1788119422,
+            "rssi": -68
+          }
+        ],
+        "alerts": []
+      },
+      {
+        "sensor": "18:D4:B7:5A:66:39",
+        "name": "Balcony",
+        "measurements": [
+          {
+            "data": "0201061BFF990405FCF47E90C5DA0000000000006CD6400AB4AABBCCDDEEFF",
+            "timestamp": 1788119322,
+            "rssi": -68
+          }
+        ],
+        "alerts": []
+      },
+      {
+        "sensor": "E0:8A:35:C1:79:B4",
+        "name": "Workshop",
+        "measurements": [
+          {
+            "data": "0201061BFF9904050CE455F0C6EA0000000000008C1640062CAABBCCDDEEFF",
+            "timestamp": 1788119357,
+            "rssi": -68
+          }
+        ],
         "alerts": []
       }
     ]

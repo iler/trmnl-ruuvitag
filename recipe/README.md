@@ -73,13 +73,28 @@ To preview without a Ruuvi account, switch `strategy` to `static` and paste
 ## Deploying
 
 ```sh
-docker run -it --rm -v "$HOME/.config/trmnlp:/root/.config/trmnlp" -v "$PWD:/plugin" \
-    --entrypoint /bin/bash trmnl/trmnlp
-# inside: trmnlp login && trmnlp push
+docker run --rm -e TRMNL_API_KEY=... -v "$PWD:/plugin" trmnl/trmnlp push --force
 ```
 
-**Add the returned `id:` to `src/settings.yml` after the first push.** Without
-one, every `trmnlp push` creates another new plugin instead of updating this one.
+`push` uploads the templates, the transform, and everything in `settings.yml` —
+strategy, polling URL and headers, refresh interval, and the custom-field
+*definitions*. It replaces whatever the plugin held, which is why
+`src/settings.yml` carries the plugin `id`.
+
+`--force` answers the "settings will be overwritten, are you sure?" prompt.
+Without it, and without `-i` on `docker run`, `push` dies on a nil read because
+the container has no stdin. `-i` and answering by hand works too.
+
+**`push` rewrites `src/settings.yml`.** It ends by writing the server's
+canonical YAML back over the local file, which strips these comments and adds
+the empty `oauth_*` keys the API returns. Restore the file from git after a
+push (`git checkout recipe/src/settings.yml`) unless you actually changed
+something, in which case commit the change and let the next push flatten it
+again.
+
+What `push` does *not* upload is the field **values** — the Ruuvi token, the
+priority list, the stale threshold. Those belong to the plugin instance, so
+enter them in the TRMNL web UI after the first push. They survive later pushes.
 
 ## Before publishing as a Recipe
 
@@ -110,44 +125,75 @@ dedupe database rows.
 ## Large screens
 
 `full.liquid` carries two designs, not one design that stretches. Below `lg`
-you get the hero and ledger, which stay legible when a large fleet has to fit
-800x480. On `lg` — TRMNL X and similar — you get the card grid ported from
-`trmnl_x.blade.php`: a header band with counts, then ten cards showing
-temperature, humidity, pressure and battery.
+you get the hero and ledger; on `lg` — TRMNL X and similar — you get the card
+grid ported from `trmnl_x.blade.php`: a header band with counts, then twelve
+cards showing temperature, humidity, pressure and battery.
 
 Only one is ever displayed; the other carries `hidden`. A hero-plus-ledger and
 a card grid are different structures, not one structure at two sizes, so
 responsive utilities on a single tree would have meant fighting both.
 
-Ten cards is what the 5x2 grid holds. Priority order decides which ten, and
-anything past that is counted at the foot of the screen rather than dropped
-silently.
+### Size for the CSS canvas, not the pixel count
+
+TRMNL X reports 1872x1404, but the device log shows how it actually renders:
+
+```
+Appearance(... scale_factor: 1.8, text_scale: large,
+           custom_width: 1872, custom_height: 1404, css_size: lg)
+```
+
+At `scale_factor: 1.8` the CSS canvas is about **1040x780**, so a four-column
+grid leaves roughly 200px of content per card. That is what the card is built
+for. Sized against the raw 1872 instead, `value--xxlarge` (96px) needs about
+275px for `-22.6` alone, and everything below the number is pushed out of the
+card — which is exactly what happened on the first attempt.
+
+Both grids cap what they draw and count the rest: twelve cards on `lg`, eleven
+ledger rows below it. A nineteen-sensor fleet overruns either otherwise, and on
+800x480 the overrun pushes the hero off the top of the screen.
 
 Two changes from the Blade original, both to satisfy `trmnlp lint`:
 
 - The alert stripe was a `:has()` rule. The condition is known in Liquid, so
   the card just gets a `ruuvi-card--flagged` class instead.
 - Spacing, alignment and the corner radius are framework classes. The
-  stylesheet keeps only the card frame, the header rule, and the row sizing —
-  `limited_inline_styles` counts `padding`, `justify-content` and
-  `border-radius` anywhere in the markup and allows six.
+  stylesheet keeps only the card frame, the header rule, the row sizing and
+  the ledger's column widths — `limited_inline_styles` counts `padding`,
+  `justify-content` and `border-radius` anywhere in the markup and allows six.
+
+Note that `value--medium` does not exist in the framework. `value--base` (38px)
+is the step between `small` (26px) and `large` (58px).
 
 ### Previewing the large layout
 
 `trmnlp` renders at 800x480 and never emits a `screen--lg` class, so the card
-grid is invisible locally. To see it, patch the built HTML:
+grid is invisible locally. Patch the built HTML, and set the canvas variables
+to the CSS size rather than the device's pixel count:
 
 ```sh
 docker run --rm -v "$PWD:/plugin" trmnl/trmnlp build
 
 sed 's|<div class="screen">|<div class="screen screen--lg screen--4bit" \
-    style="--screen-w:1872px;--screen-h:1404px;--full-w:1872px;--full-h:1404px;">|' \
+    style="--screen-w:1040px;--screen-h:780px;--full-w:1040px;--full-h:780px;">|' \
     _build/full.html > _build/full_x.html
 
 docker run --rm -v "$PWD:/plugin" --entrypoint firefox trmnl/trmnlp \
-    --headless --screenshot /plugin/_build/x.png --window-size=1900,1440 \
+    --headless --screenshot /plugin/_build/x.png --window-size=1060,820 \
     file:///plugin/_build/full_x.html
 ```
 
-Swap `screen--lg` for `screen--md screen--1bit` to check the small layout the
-same way.
+Swap `screen--lg` for `screen--md screen--1bit` and drop the style attribute to
+check the small layout the same way.
+
+This does not reproduce `text_scale: large`, so the device is still the last
+word.
+
+**Mashup sizes do not preview reliably at all.** Adding `screen--v2` renders
+half layouts about 1.8x too large; setting `--screen-w` / `--screen-h` by hand
+instead renders them blank, because `.layout` takes the full screen width while
+the half view is narrower. Neither matches the device. Check `half_horizontal`
+and `half_vertical` on real hardware, not here. The TRMNL MCP server (`.mcp.json`) is the quickest way to check the real
+thing: `MergeVariablesShowTool` for what the transform produced and
+`IntegrationsLogsTool` for the render appearance and any transform error. Its
+screenshot tool returns a 160x96 thumbnail, which is too small to judge a
+layout by.
