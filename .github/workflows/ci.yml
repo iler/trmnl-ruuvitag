@@ -80,6 +80,26 @@ jobs:
       - name: Run decoder tests only
         run: vendor/bin/pest tests/Unit/Services/Ruuvi/Rawv2DecoderTest.php
 
+  recipe-transform:
+    name: Recipe transform spec vectors
+    runs-on: ubuntu-latest
+    # The Liquid templates are checked by trmnlp lint, but the decoding in
+    # transform.js is the part that fails silently: a wrong shift or a missed
+    # sentinel yields a plausible number, not an error, and the screen shows
+    # it. These are the same Ruuvi spec vectors the PHP decoders were held to.
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run transform tests
+        run: node --test recipe/test/transform.test.mjs
+
   docker-build:
     name: Docker image build
     runs-on: ubuntu-latest
