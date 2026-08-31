@@ -61,11 +61,17 @@ custom_fields:
       than showing an old number as if it were live.
     required: true
 
-  # Before publishing as a Recipe, add an author_bio field with your contact
-  # details — TRMNL's linter (Chef) expects one, and it is where installers
-  # look when the Ruuvi side of the setup confuses them. For example:
-  #
-  # - keyname: author_bio
-  #   field_type: author_bio
-  #   name: About
-  #   description: Built by <you> — <contact link>
+  # Shown to installers in the plugin form. TRMNL's linter expects a Recipe to
+  # carry one, and the publishing guidelines expect it to say where the
+  # installer's data goes — here, their Ruuvi token leaves TRMNL's servers for
+  # Ruuvi Cloud and nowhere else.
+  - keyname: author_bio
+    field_type: author_bio
+    name: About
+    description: >-
+      Built by Ilari Mäkelä. Source and issues:
+      <a href="https://github.com/iler/trmnl-ruuvitag">github.com/iler/trmnl-ruuvitag</a>
+    help_text: >-
+      Your Ruuvi token is stored by TRMNL and sent from TRMNL's servers to
+      Ruuvi Cloud. This plugin only reads your sensors — it never writes to
+      your Ruuvi account, and nothing is sent anywhere else.

@@ -122,7 +122,6 @@ enter them in the TRMNL web UI after the first push. They survive later pushes.
 
 ## Before publishing as a Recipe
 
-- [ ] Add an `author_bio` field with contact details — the `Chef` linter expects one
 - [ ] Check the marketplace preview renders — `demo/sensors-dense.json` anchors
       its timestamps to fixed dates, so it does not need regenerating
 - [ ] Check the card grid on a real TRMNL X, portrait as well as landscape
@@ -130,6 +129,8 @@ enter them in the TRMNL web UI after the first push. They survive later pushes.
 
 Note what publishing means for secrets: each installer's Ruuvi token is stored
 by TRMNL and sent from TRMNL's servers to Ruuvi. The plugin only ever reads.
+The `author_bio` field says so on the form, which the publishing guidelines
+ask for.
 
 ## Differences from the Laravel app
 
