@@ -49,9 +49,6 @@ ported to Node in #8.
 
 The git history has all of it if you need it back.
 
-> **Note:** `iler/selfhost-configs/trmnl-ruuvi/` describes the deployment that
-> used to live here. It no longer has anything to deploy.
-
 ## License
 
 MIT — see [LICENSE](LICENSE).
