@@ -24,7 +24,7 @@ jobs:
           node-version: '22'
 
       - name: Run transform tests
-        run: node --test recipe/test/transform.test.mjs
+        run: node --test test/transform.test.mjs
 
   lint:
     name: Plugin lint
@@ -41,4 +41,4 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Lint the plugin
-        run: docker run --rm -v "$PWD/recipe:/plugin" trmnl/trmnlp lint
+        run: docker run --rm -v "$PWD:/plugin" trmnl/trmnlp lint

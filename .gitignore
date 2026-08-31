@@ -8,4 +8,5 @@
 /.vscode
 /.zed
 /node_modules
+_build/
 Thumbs.db
