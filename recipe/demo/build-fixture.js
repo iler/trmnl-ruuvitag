@@ -7,11 +7,19 @@
  * account, and serving as the demo data a published Recipe needs so the
  * marketplace can render a preview for someone who has not connected Ruuvi yet.
  *
- * Timestamps are written relative to the moment this runs, so regenerate
- * before publishing — a frozen fixture eventually renders as all-stale.
+ * Timestamps anchor to fixed dates rather than to the moment this runs. Demo
+ * data is static once published, so anything relative to "now" reads as fresh
+ * on the day it is generated and as hopelessly stale a fortnight later — every
+ * card grey, every reading flagged. A far-future anchor is never stale, and
+ * only the clock time is ever displayed, so the date itself is invisible.
  */
 
-const NOW = Math.floor(Date.now() / 1000);
+// Comfortably beyond any plausible staleness threshold, so these read as fresh
+// no matter when the preview runs.
+const FRESH = Date.UTC(2035, 5, 1, 9, 0, 0) / 1000;
+
+// Deliberately ancient, to keep one card demonstrating the stale state.
+const ANCIENT = Date.UTC(2020, 0, 15, 8, 30, 0) / 1000;
 
 function bytesToHex(bytes) {
   return bytes.map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase();
@@ -55,11 +63,12 @@ function air({ temperature, humidity, pressure }) {
   return advertisement([...head, ...new Array(40 - head.length).fill(0x00)]);
 }
 
-function sensor({ mac, name, hex, agoSeconds, alerts = [] }) {
+function sensor({ mac, name, hex, agoSeconds, stale = false, alerts = [] }) {
+  const timestamp = stale ? ANCIENT : FRESH - agoSeconds;
   return {
     sensor: mac,
     name,
-    measurements: hex === null ? [] : [{ data: hex, timestamp: NOW - agoSeconds, rssi: -68 }],
+    measurements: hex === null ? [] : [{ data: hex, timestamp, rssi: -68 }],
     alerts,
   };
 }
@@ -86,7 +95,7 @@ const sensors = [
     hex: rawv2({ temperature: -22.6, humidity: null, pressure: null, batteryMv: 2620, sequence: 5540 }) }),
   sensor({ mac: '9C:44:D0:2E:61:07', name: 'Study (Ruuvi Air)', agoSeconds: 175,
     hex: air({ temperature: 22.8, humidity: 44, pressure: 100_940 }) }),
-  sensor({ mac: 'B5:12:88:70:3F:44', name: 'Garage workbench', agoSeconds: 7200,
+  sensor({ mac: 'B5:12:88:70:3F:44', name: 'Garage workbench', stale: true, agoSeconds: 0,
     hex: rawv2({ temperature: 4.1, humidity: 71, pressure: 100_880, batteryMv: 2510, sequence: 118 }) }),
   sensor({ mac: '77:0C:19:B4:52:8A', name: 'Attic hatch', agoSeconds: 0, hex: null }),
   sensor({ mac: '31:A0:5C:6D:11:92', name: 'Kitchen worktop', agoSeconds: 120,
