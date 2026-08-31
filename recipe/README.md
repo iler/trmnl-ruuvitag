@@ -70,6 +70,30 @@ docker run --rm -v "$PWD:/plugin" trmnl/trmnlp build   # static HTML per layout
 To preview without a Ruuvi account, switch `strategy` to `static` and paste
 `demo/sensors-dense.json` into `static_data`.
 
+## Tests
+
+```sh
+node --test test/transform.test.mjs
+```
+
+No dependencies and no build — Node's own test runner against
+`src/transform.js`. The suite loads the file and wraps it in a `Function` to
+reach its top-level declarations, so the deployed source keeps the bare
+`run(input)` contract TRMNL expects and carries no exports.
+
+It covers the four Rawv2 vectors from the Ruuvi spec, a captured Air payload,
+advertisement unwrapping, the battery buckets, priority ordering, and `run()`
+end to end including the fault and stale paths.
+
+This matters more than template tests. A Liquid mistake shows up as a blank or
+ugly screen; a decoding mistake shows up as a plausible wrong number that
+nobody notices. Confirmed to catch a wrong bit shift, a removed sentinel
+check, and an off-by-one in the AD walk.
+
+| File | Purpose |
+| --- | --- |
+| `test/transform.test.mjs` | Spec vectors and behaviour for the transform |
+
 ## Deploying
 
 ```sh
