@@ -123,8 +123,8 @@ enter them in the TRMNL web UI after the first push. They survive later pushes.
 ## Before publishing as a Recipe
 
 - [ ] Add an `author_bio` field with contact details — the `Chef` linter expects one
-- [ ] Regenerate `demo/sensors-dense.json`; its timestamps are absolute, so a
-      stale fixture makes the marketplace preview render every sensor as stale
+- [ ] Check the marketplace preview renders — `demo/sensors-dense.json` anchors
+      its timestamps to fixed dates, so it does not need regenerating
 - [ ] Check the card grid on a real TRMNL X, portrait as well as landscape
 - [ ] Confirm the token is only ever read from the form field
 
