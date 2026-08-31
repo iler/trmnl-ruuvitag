@@ -31,19 +31,14 @@ jobs:
     runs-on: ubuntu-latest
     # trmnlp's own checks: unused custom fields, opacity (which dithers badly
     # on e-ink), inline style budget, title length, layouts with no content.
+    #
+    # The Docker image rather than the gem: the published trmnl_preview gem
+    # has no `lint` command yet, and the image is what this plugin is
+    # developed and previewed against, so there is no version skew.
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.4'
-
-      - name: Install trmnlp
-        run: gem install trmnl_preview
-
       - name: Lint the plugin
-        run: trmnlp lint
-        working-directory: recipe
+        run: docker run --rm -v "$PWD/recipe:/plugin" trmnl/trmnlp lint
