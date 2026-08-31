@@ -31,11 +31,14 @@ no filters to unpack it, which is why the Serverless step exists at all.
 | `src/transform.js` | Serverless `run(input)`; the decoding and shaping |
 | `src/shared.liquid` | Assigns and `{% template %}` partials for every layout |
 | `src/full.liquid` | Hero plus indexed ledger; a card grid on large screens |
-| `src/half_horizontal.liquid` | Four sensors as lines |
-| `src/half_vertical.liquid` | Six sensors as cards |
+| `src/half_horizontal.liquid` | Four sensors — lines below `lg`, cards above |
+| `src/half_vertical.liquid` | Six sensors — cards either way, two columns on `lg` |
 | `src/quadrant.liquid` | One sensor |
+| `test/transform.test.mjs` | Spec vectors and behaviour for the transform |
 | `demo/build-fixture.js` | Regenerates the demo response below |
 | `demo/sensors-dense.json` | A stand-in Ruuvi response covering every branch |
+| `bin/push` | Deploy; shared verbatim across plugin repos |
+| `docs/development.md` | The development loop, in full |
 
 ## Settings the installer fills in
 
@@ -54,21 +57,17 @@ so a typo is visible on the device rather than silent.
 ## Local development
 
 ```sh
-export RUUVI_API_TOKEN=...        # .trmnlp.yml reads it from the environment
-docker run --rm --pull always -p 4567:4567 -v "$PWD:/plugin" trmnl/trmnlp serve
+RUUVI_API_TOKEN=... docker run --rm -p 4567:4567 \
+  -e RUUVI_API_TOKEN -v "$PWD:/plugin" trmnl/trmnlp serve
 ```
 
-Then open <http://localhost:4567>. Edit any file under `src/` and the preview
-follows. `trmnlp` runs `src/transform.js` through its own node, the same way
+Then <http://localhost:4567>. Edit anything under `src/` and the preview
+follows; `trmnlp` runs `src/transform.js` through its own node, the same way
 the hosted runtime does.
 
-```sh
-docker run --rm -v "$PWD:/plugin" trmnl/trmnlp lint    # gate before pushing
-docker run --rm -v "$PWD:/plugin" trmnl/trmnlp build   # static HTML per layout
-```
-
-To preview without a Ruuvi account, switch `strategy` to `static` and paste
-`demo/sensors-dense.json` into `static_data`.
+**[`docs/development.md`](docs/development.md) is the full loop** — previewing
+the TRMNL X layout, reaching states the sensors will not produce on demand,
+linting, pushing, and the traps worth knowing before you hit them.
 
 ## Tests
 
@@ -76,23 +75,10 @@ To preview without a Ruuvi account, switch `strategy` to `static` and paste
 node --test test/transform.test.mjs
 ```
 
-No dependencies and no build — Node's own test runner against
-`src/transform.js`. The suite loads the file and wraps it in a `Function` to
-reach its top-level declarations, so the deployed source keeps the bare
-`run(input)` contract TRMNL expects and carries no exports.
-
-It covers the four Rawv2 vectors from the Ruuvi spec, a captured Air payload,
-advertisement unwrapping, the battery buckets, priority ordering, and `run()`
-end to end including the fault and stale paths.
-
-This matters more than template tests. A Liquid mistake shows up as a blank or
-ugly screen; a decoding mistake shows up as a plausible wrong number that
-nobody notices. Confirmed to catch a wrong bit shift, a removed sentinel
-check, and an off-by-one in the AD walk.
-
-| File | Purpose |
-| --- | --- |
-| `test/transform.test.mjs` | Spec vectors and behaviour for the transform |
+The Ruuvi spec vectors against `src/transform.js`. No dependencies, no build.
+The decoding is what deserves the coverage: a wrong shift or a missed sentinel
+does not raise, it produces a plausible number and the screen shows it as fact.
+See [`docs/development.md`](docs/development.md#tests).
 
 ## Deploying
 
@@ -101,27 +87,13 @@ bin/push            # asks before it overwrites
 bin/push --force    # no prompt
 ```
 
-`bin/push` reads the TRMNL account key from 1Password (or `$TRMNL_API_KEY` if
-already exported) and refuses to run when `src/settings.yml` has no `id` —
-without one, `trmnlp push` does not fail, it quietly creates a new plugin and
-does it again on every run. The script is shared verbatim across plugin repos;
-its canonical copy lives in
-[iler/trmnl-met-norway](https://github.com/iler/trmnl-met-norway/blob/main/bin/push).
+Reads the TRMNL account key from 1Password and refuses to run without an `id`
+in `src/settings.yml`. Run it from your own terminal — an agent's sandbox
+cannot reach `op`. Push rewrites `src/settings.yml`, so `git restore
+src/settings.yml` afterwards.
 
-`push` uploads the templates, the transform, and everything in `settings.yml` —
-strategy, polling URL and headers, refresh interval, and the custom-field
-*definitions*. It replaces whatever the plugin held, which is why
-`src/settings.yml` carries the plugin `id`.
-
-**`push` rewrites `src/settings.yml`.** It ends by writing the server's
-canonical YAML back over the local file, which strips its comments and adds the
-empty `oauth_*` keys the API returns. Restore it with `git restore
-src/settings.yml` after a push, unless you actually changed something.
-
-What `push` does *not* upload is the field **values** — the Ruuvi token, the
-priority list, the stale threshold. Those belong to the plugin instance, so
-enter them in the TRMNL web UI. They survive later pushes.
-
+Full detail, including who can hold the key and why it is not in this repo's
+1Password Environment, in [`docs/development.md`](docs/development.md#push-to-trmnl).
 
 ## Before publishing as a Recipe
 
@@ -194,37 +166,12 @@ is the step between `small` (26px) and `large` (58px).
 
 ### Previewing the large layout
 
-`trmnlp` renders at 800x480 and never emits a `screen--lg` class, so the card
-grid is invisible locally. Patch the built HTML, and set the canvas variables
-to the CSS size rather than the device's pixel count:
-
-```sh
-docker run --rm -v "$PWD:/plugin" trmnl/trmnlp build
-
-sed 's|<div class="screen">|<div class="screen screen--lg screen--4bit" \
-    style="--screen-w:1040px;--screen-h:780px;--full-w:1040px;--full-h:780px;">|' \
-    _build/full.html > _build/full_x.html
-
-docker run --rm -v "$PWD:/plugin" --entrypoint firefox trmnl/trmnlp \
-    --headless --screenshot /plugin/_build/x.png --window-size=1060,820 \
-    file:///plugin/_build/full_x.html
-```
-
-Swap `screen--lg` for `screen--md screen--1bit` and drop the style attribute to
-check the small layout the same way.
-
-This does not reproduce `text_scale: large`, so the device is still the last
-word.
-
-**Mashup sizes do not preview reliably at all.** Adding `screen--v2` renders
-half layouts about 1.8x too large; setting `--screen-w` / `--screen-h` by hand
-instead renders them blank, because `.layout` takes the full screen width while
-the half view is narrower. Neither matches the device. Check `half_horizontal`
-and `half_vertical` on real hardware, not here. The TRMNL MCP server (`.mcp.json`) is the quickest way to check the real
-thing: `MergeVariablesShowTool` for what the transform produced and
-`IntegrationsLogsTool` for the render appearance and any transform error. Its
-screenshot tool returns a 160x96 thumbnail, which is too small to judge a
-layout by.
+`trmnlp` cannot render the `lg` branch: its renderer only ever adds
+`screen--no-bleed` to the screen class, whatever `width` and `height` say, and
+the render template is hardcoded inside the gem. The workaround — patch the
+built HTML, then screenshot it at the CSS canvas size — is in
+[`docs/development.md`](docs/development.md#previewing-the-trmnl-x-layout),
+along with why mashup sizes cannot be previewed at all.
 
 ## Environment
 
