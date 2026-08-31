@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# Push src/ to the TRMNL plugin named by `id` in src/settings.yml.
+#
+# Canonical copy: github.com/iler/trmnl-met-norway/blob/main/bin/push
+# This script holds nothing repo-specific, so copy it to any trmnl plugin
+# project unchanged. Never copy src/settings.yml with it: its `id` is the one
+# per-plugin value, and pushing with the wrong one overwrites another plugin.
+#
+# TRMNL_API_KEY is an ACCOUNT key: it reads and writes every private plugin on
+# the account. It is deliberately NOT in this repo's 1Password Environment.
+# That mount holds plugin-scoped secrets, and a key with a wider scope than the
+# mount would be copied into every plugin repo — many places to rotate, and an
+# account-wide key readable by everything in each of them. One canonical item
+# feeds every plugin repo instead, so a rotation is one edit.
+#
+# The key is taken from the first source that has it:
+#   1. TRMNL_API_KEY already in the environment — GitHub Actions, or an export
+#   2. `op read` of TRMNL_API_KEY_REF — a local push
+#
+# Override the reference for a different vault or item name:
+#   export TRMNL_API_KEY_REF="op://Vault/Item/field"
+#
+#   bin/push            # asks before it overwrites
+#   bin/push --force    # no prompt; see docs/development.md
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+if [ ! -f src/settings.yml ]; then
+  echo "bin/push: no src/settings.yml here. Run this from a trmnl plugin project." >&2
+  exit 1
+fi
+
+# Checked before the key is fetched, so a doomed push raises no 1Password
+# prompt. Without an id, `trmnlp push` does not fail: it quietly creates a new
+# plugin, and does it again on every run.
+plugin_id="$(sed -n 's/^id:[[:space:]]*\([0-9][0-9]*\).*/\1/p' src/settings.yml | head -1)"
+if [ -z "$plugin_id" ]; then
+  echo "bin/push: src/settings.yml has no numeric id." >&2
+  echo "Pushing now would create a NEW plugin rather than update one." >&2
+  echo "Add the id of the plugin this project owns. See docs/development.md." >&2
+  exit 1
+fi
+
+: "${TRMNL_API_KEY_REF:=op://TRMNL/API/credential}"
+
+if [ -z "${TRMNL_API_KEY:-}" ]; then
+  if ! command -v op >/dev/null 2>&1; then
+    echo "bin/push: TRMNL_API_KEY is not set and the 1Password CLI is not installed." >&2
+    echo "Install op, or export TRMNL_API_KEY for this command only." >&2
+    exit 1
+  fi
+  op_error="$(mktemp)"
+  trap 'rm -f "$op_error"' EXIT
+  if ! TRMNL_API_KEY="$(op read "$TRMNL_API_KEY_REF" 2>"$op_error")" || [ -z "$TRMNL_API_KEY" ]; then
+    echo "bin/push: could not read the TRMNL account key from 1Password." >&2
+    echo "  reference: $TRMNL_API_KEY_REF" >&2
+    # op's own words, because the cause is often not the reference. A coding
+    # agent's sandbox, for one, cannot read ~/.config/op, so this must be run
+    # from your own terminal.
+    if [ -s "$op_error" ]; then
+      sed 's/^/  op: /' "$op_error" >&2
+    fi
+    exit 1
+  fi
+  export TRMNL_API_KEY
+fi
+
+# Written out twice rather than with an array: under `set -u`, expanding an
+# empty array is an unbound-variable error in bash 3.2, which is what macOS
+# ships, so the array form fails every non-interactive run.
+if [ -t 0 ]; then
+  exec docker run --rm -it \
+    -e TRMNL_API_KEY \
+    -v "$PWD:/plugin" \
+    trmnl/trmnlp push "$@"
+else
+  exec docker run --rm \
+    -e TRMNL_API_KEY \
+    -v "$PWD:/plugin" \
+    trmnl/trmnlp push "$@"
+fi

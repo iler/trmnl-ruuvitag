@@ -1,7 +1,7 @@
 /**
  * Spec-vector regression for src/transform.js.
  *
- *   node --test recipe/test/*.test.mjs
+ *   node --test test/*.test.mjs
  *
  * The bit-level decoding is the most failure-prone part of this plugin and the
  * least visible when it breaks: a wrong shift or a missed sentinel produces a
