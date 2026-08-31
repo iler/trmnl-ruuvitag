@@ -1,7 +1,7 @@
 # TRMNL Ruuvitag
 
 A TRMNL private plugin that puts RuuviTag readings on the screen with no server
-of your own. It replaces the Laravel app in the parent directory: TRMNL polls
+of your own: TRMNL polls
 Ruuvi Cloud on its own schedule, a Serverless function decodes the readings, and
 Liquid templates draw them.
 
@@ -107,26 +107,21 @@ by TRMNL and sent from TRMNL's servers to Ruuvi. The plugin only ever reads.
 The `author_bio` field says so on the form, which the publishing guidelines
 ask for.
 
-## Differences from the Laravel app
+## What it deliberately does not do
 
-| Laravel | Here |
-| --- | --- |
-| SQLite `sensor_readings`, dedupe by sequence number | No storage — each render reads what Ruuvi reports now |
-| `fetchHistory()`, unused, kept for a future sparkline | Gone; a sparkline would need a backend again |
-| Scheduler every 15 minutes, plus a cache and a rate limiter | TRMNL's `refresh_interval`, one request per refresh |
-| `opacity-50` dims a stale sensor | `text--gray-30` — `trmnlp lint` rejects opacity, which dithers badly on e-ink |
-| Icon components for battery and temperature | The same Lucide glyphs, inlined in `shared.liquid` |
-| `RUUVI_DISPLAY_TZ` | The viewer's own TRMNL time zone |
+Nothing persists between renders. Each poll draws what Ruuvi reports at that
+moment, so there is no history on the device and a sparkline would mean running
+a backend again.
 
-Acceleration, TX power, movement and the measurement sequence are no longer
-decoded. Nothing on screen used them, and sequence numbers only existed to
-dedupe database rows.
+The decoders skip acceleration, TX power, movement and the measurement
+sequence. Nothing on screen uses them, and the sequence number only ever
+existed to deduplicate stored readings, which there are none of.
 
 ## Large screens
 
 `full.liquid` carries two designs, not one design that stretches. Below `lg`
 you get the hero and ledger; on `lg` — TRMNL X and similar — you get the card
-grid ported from `trmnl_x.blade.php`: a header band with counts, then twelve
+grid: a header band with counts, then twelve
 cards showing temperature, humidity, pressure and battery.
 
 Only one is ever displayed; the other carries `hidden`. A hero-plus-ledger and
@@ -152,10 +147,10 @@ Both grids cap what they draw and count the rest: twelve cards on `lg`, eleven
 ledger rows below it. A nineteen-sensor fleet overruns either otherwise, and on
 800x480 the overrun pushes the hero off the top of the screen.
 
-Two changes from the Blade original, both to satisfy `trmnlp lint`:
+Two constraints come from `trmnlp lint`:
 
-- The alert stripe was a `:has()` rule. The condition is known in Liquid, so
-  the card just gets a `ruuvi-card--flagged` class instead.
+- The alert stripe is a `ruuvi-card--flagged` class rather than a `:has()`
+  rule. The condition is known in Liquid, so it can simply be written.
 - Spacing, alignment and the corner radius are framework classes. The
   stylesheet keeps only the card frame, the header rule, the row sizing and
   the ledger's column widths — `limited_inline_styles` counts `padding`,
@@ -188,16 +183,6 @@ Neither belongs in the repo. `.mcp.json` holds only the reference, not the key.
   `transform.js`. The decoding fails silently when it fails at all, so this is
   the job that matters.
 - **Plugin lint** — `trmnlp lint`.
-
-## History
-
-This was a self-hosted Laravel application that pushed to TRMNL over a webhook:
-scheduler, SQLite, Docker images on GHCR, systemd units on a server. TRMNL's
-Serverless runtime removed the need for any of it, and the app was replaced by
-the plugin in #6 and #7, then deleted in #9 once its decoder tests had been
-ported to Node in #8.
-
-The git history has all of it if you need it back.
 
 ## License
 
