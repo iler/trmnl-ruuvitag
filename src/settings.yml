@@ -87,6 +87,8 @@ custom_fields:
       <br><br>
       Built by Ilari Mäkelä. Source and issues:
       <a href="https://github.com/iler/trmnl-ruuvitag">github.com/iler/trmnl-ruuvitag</a>
+      &middot; Ruuvi Cloud API:
+      <a href="https://docs.ruuvi.com/communicate-with-ruuvi-cloud/cloud/user-api">docs.ruuvi.com</a>
     help_text: >-
       Your Ruuvi token is stored by TRMNL and sent from TRMNL's servers to
       Ruuvi Cloud. This plugin only reads your sensors — it never writes to
