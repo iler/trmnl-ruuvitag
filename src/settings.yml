@@ -49,7 +49,6 @@ custom_fields:
       Match a sensor by its Ruuvi name or its MAC address. Sensors you leave
       out still appear, after the ones you list. Leave blank to keep the order
       Ruuvi gives.
-    required: false
 
   - keyname: stale_after_minutes
     field_type: number

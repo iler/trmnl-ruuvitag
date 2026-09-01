@@ -100,7 +100,7 @@
 {% template sensor_flags %}
   {%- if sensor.alarm %}<span class="label label--small label--outline">{{ sensor.alarm }}</span>{% endif -%}
   {%- if sensor.battery_low %}<span class="label label--small label--outline">bat</span>{% endif -%}
-  {%- if sensor.is_stale %}<span class="label label--small label--gray">stale</span>{% endif -%}
+  {%- if sensor.is_stale %}<span class="label label--small label--gray 1bit:text--black">stale</span>{% endif -%}
 {% endtemplate %}
 
 {%- comment -%}
@@ -196,7 +196,7 @@
       leaves room to spare.
     {%- endcomment -%}
     <div class="flex flex--row flex--center-y gap--xsmall ruuvi-card__head">
-      <span class="label label--small label--gray">{{ rank_label }}</span>
+      <span class="label label--small label--gray 1bit:text--black">{{ rank_label }}</span>
       {% render 'icon', name: sensor.temp_icon, size: 16 %}
       <span class="stretch-x"></span>
       {%- if sensor.alarm -%}
@@ -222,7 +222,7 @@
       <div class="flex flex--row flex--center-y gap--xsmall ruuvi-card__hero">
         <span class="value value--base">&mdash;</span>
       </div>
-      <span class="label label--small label--gray">awaiting reading</span>
+      <span class="label label--small label--gray 1bit:text--black">awaiting reading</span>
     {%- else -%}
       <div class="flex flex--row gap--xsmall ruuvi-card__hero">
         <span class="value value--base value--tnums">{{ sensor.temperature }}</span>
@@ -238,7 +238,7 @@
         </span>
       </div>
 
-      <span class="label label--small label--gray">read {{ sensor.measured_at }}</span>
+      <span class="label label--small label--gray 1bit:text--black">read {{ sensor.measured_at }}</span>
     {%- endif -%}
   </article>
 {% endtemplate %}
