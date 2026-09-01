@@ -70,6 +70,7 @@ custom_fields:
     name: About
     category: environment
     github_url: https://github.com/iler/trmnl-ruuvitag
+    learn_more_url: https://docs.ruuvi.com/communicate-with-ruuvi-cloud/cloud/user-api
     description: >-
       Every RuuviTag in your Ruuvi Cloud account on one screen: temperature,
       humidity, pressure, battery, and when each sensor was last heard from.
@@ -87,8 +88,6 @@ custom_fields:
       <br><br>
       Built by Ilari Mäkelä. Source and issues:
       <a href="https://github.com/iler/trmnl-ruuvitag">github.com/iler/trmnl-ruuvitag</a>
-      &middot; Ruuvi Cloud API:
-      <a href="https://docs.ruuvi.com/communicate-with-ruuvi-cloud/cloud/user-api">docs.ruuvi.com</a>
     help_text: >-
       Your Ruuvi token is stored by TRMNL and sent from TRMNL's servers to
       Ruuvi Cloud. This plugin only reads your sensors — it never writes to
