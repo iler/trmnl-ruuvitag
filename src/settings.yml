@@ -61,14 +61,30 @@ custom_fields:
       than showing an old number as if it were live.
     required: true
 
-  # Shown to installers in the plugin form. TRMNL's linter expects a Recipe to
-  # carry one, and the publishing guidelines expect it to say where the
-  # installer's data goes — here, their Ruuvi token leaves TRMNL's servers for
-  # Ruuvi Cloud and nowhere else.
+  # The recipe page's README: it renders under the preview image on the install
+  # page, so it has to say what the screen shows, how to set it up, and what an
+  # installer is agreeing to. Chef also requires `category` here — up to two,
+  # comma separated — and at least one contact route.
   - keyname: author_bio
     field_type: author_bio
     name: About
+    category: environment
+    github_url: https://github.com/iler/trmnl-ruuvitag
     description: >-
+      Every RuuviTag in your Ruuvi Cloud account on one screen: temperature,
+      humidity, pressure, battery, and when each sensor was last heard from.
+      Alarms come from Ruuvi's own alert settings, so the thresholds, delay and
+      hysteresis you configured in the Ruuvi app are what the screen shows.
+      <br><br>
+      Needs a read-only Ruuvi Cloud API token — in the Ruuvi Station app, go to
+      Settings, My Ruuvi account, Request an API token. "Priority sensors"
+      decides which of them the smaller layouts have room for; leave it blank
+      to keep the order Ruuvi gives.
+      <br><br>
+      Readings are polled with your own token against your own Ruuvi account,
+      so the refresh rate is yours to set and does not affect anyone else using
+      this recipe.
+      <br><br>
       Built by Ilari Mäkelä. Source and issues:
       <a href="https://github.com/iler/trmnl-ruuvitag">github.com/iler/trmnl-ruuvitag</a>
     help_text: >-

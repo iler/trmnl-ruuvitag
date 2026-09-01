@@ -97,15 +97,23 @@ Full detail, including who can hold the key and why it is not in this repo's
 
 ## Before publishing as a Recipe
 
-- [ ] Check the marketplace preview renders — `demo/sensors-dense.json` anchors
-      its timestamps to fixed dates, so it does not need regenerating
-- [ ] Check the card grid on a real TRMNL X, portrait as well as landscape
-- [ ] Confirm the token is only ever read from the form field
+Chef, TRMNL's publication linter, runs server-side at publish — `trmnlp lint`
+passing locally says nothing about readiness. Outstanding:
 
-Note what publishing means for secrets: each installer's Ruuvi token is stored
-by TRMNL and sent from TRMNL's servers to Ruuvi. The plugin only ever reads.
-The `author_bio` field says so on the form, which the publishing guidelines
-ask for.
+- [ ] **Icon source** — the icon is uploaded on TRMNL, but no source file is in
+      the repo, so it cannot be recut or restored from here. `trmnlp push`
+      cannot carry it either way; the upload is and stays manual
+- [ ] **Featured image** — captured from the plugin's own current screen, not
+      uploaded. Take it off every playlist first so the screen freezes, and
+      never capture one built from `demo/sensors-dense.json`
+- [ ] Check the card grid on a real TRMNL X, portrait as well as landscape
+
+Done: the Developer add-on, the icon, `author_bio` with `category` and a
+contact route, title and description within their limits, every custom field
+used, one inline-style occurrence against a budget of six, no `view--*`
+classes, no opacity, no async, and inline SVG rather than remote images.
+
+See [`docs/development.md`](docs/development.md#publishing-what-local-tooling-cannot-tell-you).
 
 ## What it deliberately does not do
 

@@ -74,6 +74,16 @@ the overflow only shows up on the panel.
 Swap `screen--lg screen--4bit` for `screen--md screen--1bit`, and drop the style
 attribute, to check the small layout.
 
+**`trmnlp` cannot render a PNG narrower than about 450px.** Its headless
+Firefox clamps the viewport, so `half_vertical` (400x480) and `quadrant`
+(400x240) fail with `the browser clamped the viewport to 450x480`. Use the HTML
+render in a browser sized to the real viewport instead:
+
+```
+http://localhost:4567/render/half_vertical.html?width=400&height=480
+http://localhost:4567/render/quadrant.html?width=400&height=240
+```
+
 **Mashup sizes do not preview at all.** `screen--v2` renders halves about 1.8x
 too large; setting the canvas by hand renders them blank, because `.layout`
 takes the full screen width while a half view is narrower. Check
@@ -196,6 +206,29 @@ published, the Recipe Master is live for every installed user and its own
 generated screen is the public preview. At that point `bin/push --force` is a
 deploy, not a save. Lint, preview locally, and look at the screen first.
 
+## Publishing: what local tooling cannot tell you
+
+**`trmnlp lint` is not Chef.** Chef is TRMNL's publication linter and runs
+server-side only, at publish. Local lint passes happily with problems that
+block publication, so a green CI badge says nothing about readiness. Chef's
+checks are the authority:
+<https://gist.github.com/ryanckulp/fbe5f68c51db1ae214a97da24be4d62b>
+
+Two of its requirements are attached outside the code and cannot travel with a
+push:
+
+- **An icon.** Uploaded in the plugin's settings view. `trmnlp push` does not
+  carry it — it is not a `settings.yml` field — so it is a manual step and
+  stays one. 512x512 PNG. This plugin's icon is uploaded but its source is not
+  in the repo, so it cannot be recut or restored from here; drop the source in
+  if you still have it. Keep Ruuvi's branding out of it.
+- **A featured image**, which is the section below.
+
+Three more live in `settings.yml` and so are in git: the `author_bio` field,
+its `category` (up to two, comma separated — there is no "weather" category,
+and Chef fails without one), and at least one contact route among
+`email_address`, `github_url`, `learn_more_url` and `youtube_url`.
+
 ## The featured image is not a file
 
 TRMNL captures it from the plugin's **current generated screen**: edit the
@@ -205,6 +238,18 @@ screen. So the work is to make the screen worth capturing, then press it.
 **Never capture a screen built from `demo/sensors-dense.json`.** The fixture
 exists to reach states the sensors will not produce on demand. Presented as a
 marketplace preview it is a fabricated product shot — its rooms do not exist.
+
+## Ruuvi Cloud's limits
+
+Ruuvi rate-limits authenticated queries to
+`4 * MAX_SENSORS_OWNED + 0.1 * MAX_HISTORY_DAYS` per minute — on a Pro plan with
+25 sensors and 731 days that is about 173 a minute, against the four an hour a
+15-minute refresh makes.
+
+The limit is **per account, not per application**, because every installer
+authenticates with their own token. So the usual recipe hazard — one installer
+picking a fast refresh and getting the whole plugin throttled — does not apply
+here. An installer can only spend their own quota. The `author_bio` says so.
 
 ## The API key, and who can hold one
 
