@@ -32,7 +32,7 @@
   </div>
 
   <div class="layout layout--col hidden lg:flex ruuvi">
-    <div class="grid grid--cols-2 gap--small ruuvi__grid">
+    <div class="grid grid--cols-2 portrait:grid--cols-1 gap--small ruuvi__grid">
       {%- for sensor in featured limit: 6 -%}
         {%- assign rank_label = forloop.index | prepend: '0' -%}
         {% render 'sensor_card', sensor: sensor, rank: forloop.index, rank_label: rank_label %}
