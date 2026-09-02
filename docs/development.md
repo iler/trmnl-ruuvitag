@@ -301,15 +301,19 @@ There is no narrower key to hand out, so:
   allows six occurrences of `padding`, `justify-content`, `border-radius` and
   friends across all markup, and `no_opacity` rejects opacity outright, because
   it dithers badly on e-ink. Use framework classes and the budget is never near.
-- **E1's VOC and NOX 9th bits are not where the spec page says.** It puts them
-  at flags b6 and b7; Ruuvi staff say the LSB end, and a real payload settles
-  it. Its flags byte is `0xFC` — six bits set, two clear — which matches this
-  format's habit of filling reserved fields with ones, and reading b6/b7 would
-  have a bedroom holding 0.8 ug/m3 of PM2.5 report VOC 311 and NOX 256. VOC 55
-  and NOX 0 cohere with the rest of that payload; 311 and 256 do not.
-- **The VOC and NOX sentinel is the full 9-bit `0x1FF`,** not a `0xFF` low
-  byte. Treating the low byte alone as "not available" would silently drop a
-  real reading of 255.
+- **E1's VOC and NOX flag bits are the LEAST significant bit, not the most.**
+  The spec page names the right bits — b6 for VOC, b7 for NOX — but the byte
+  holds the high eight and the flag supplies the bottom one:
+  `(byte << 1) | flag_bit`. Reading it as the MSB halves every value, and the
+  error is invisible while a sensor sits below 256, which is where indoor air
+  usually is. Two live sensors read at the same moment as the Ruuvi app settle
+  it: byte 44 with flags `0xBC` gives 88, byte 73 with flags `0xFC` gives 147,
+  and the app agreed with both. NOX confirms the shape — it decodes to 1 on a
+  clean sensor, and Ruuvi documents the index as starting at 1, where the MSB
+  reading yields an out-of-range 0.
+- **The VOC and NOX sentinel is the full 9-bit `0x1FF`,** which needs the flag
+  bit as well as a `0xFF` byte. Treating the byte alone as "not available"
+  would drop a real reading of 510.
 - **There is no air quality score in the advertisement.** Ruuvi computes its
   0-100 score from PM2.5 and CO2 in the app. Both inputs are broadcast, so the
   score could be re-derived — but a number labelled "air quality" that

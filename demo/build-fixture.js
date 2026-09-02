@@ -65,14 +65,14 @@ function air({ temperature, humidity, pressure, pm25, co2, voc, nox, sequence })
     ...pm(pm25 * 1.4),                     // PM4.0
     ...pm(pm25 * 1.7),                     // PM10
     ...int16(co2),
-    voc & 0xff,
-    nox & 0xff,
+    (voc >> 1) & 0xff,                     // high 8 bits; the LSB rides in flags
+    (nox >> 1) & 0xff,
     0xff, 0xff, 0xff,                      // luminosity: not fitted on production hardware
     0xff, 0xff, 0xff,                      // reserved
     (sequence >> 16) & 0xff, (sequence >> 8) & 0xff, sequence & 0xff,
-    // Reserved bits are ones, as everywhere else in this format; the two data
-    // bits carry the 9th bit of VOC and NOX.
-    0xfc | ((voc >> 8) & 0x01) | (((nox >> 8) & 0x01) << 1),
+    // b6 and b7 carry the least significant bit of VOC and NOX; the rest are
+    // reserved and set, as they are on a real sensor.
+    0x3f | ((voc & 0x01) << 6) | ((nox & 0x01) << 7),
     0xff, 0xff, 0xff, 0xff, 0xff,          // reserved
     0xcd, 0x0d, 0x61, 0xd2, 0xed, 0x8c,    // MAC
   ]);
@@ -110,7 +110,7 @@ const sensors = [
     hex: rawv2({ temperature: -22.6, humidity: null, pressure: null, batteryMv: 2620, sequence: 5540 }) }),
   sensor({ mac: '9C:44:D0:2E:61:07', name: 'Study (Ruuvi Air)', agoSeconds: 175,
     hex: air({ temperature: 22.8, humidity: 44, pressure: 100_940,
-               pm25: 3.2, co2: 842, voc: 96, nox: 1, sequence: 663451 }) }),
+               pm25: 3.2, co2: 842, voc: 147, nox: 1, sequence: 663451 }) }),
   sensor({ mac: 'B5:12:88:70:3F:44', name: 'Garage workbench', stale: true, agoSeconds: 0,
     hex: rawv2({ temperature: 4.1, humidity: 71, pressure: 100_880, batteryMv: 2510, sequence: 118 }) }),
   sensor({ mac: '77:0C:19:B4:52:8A', name: 'Attic hatch', agoSeconds: 0, hex: null }),
