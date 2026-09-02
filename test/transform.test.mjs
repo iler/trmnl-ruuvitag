@@ -128,6 +128,26 @@ test('the discriminating case: the same byte with the flag bit clear', () => {
   close(r.pm25, 0.5, 0.05);
 });
 
+test('the VOC chip is raised only above the ventilate-now threshold', () => {
+  const at = (voc) => {
+    const i = input();
+    // byte 17 holds the high 8 bits, flags b6 the lowest.
+    const b = Buffer.from(AIR, 'hex');
+    b[17] = voc >> 1;
+    b[28] = voc & 1 ? b[28] | 0x40 : b[28] & ~0x40;
+    i.data.sensors[0].measurements[0].data = '0201062BFF9904' + b.toString('hex');
+    return T.run(i).sensors[0];
+  };
+  assert.equal(at(87).voc_elevated, false, 'ordinary indoor air raises nothing');
+  assert.equal(at(149).voc_elevated, false, 'still inside normal variation');
+  assert.equal(at(150).voc_elevated, true);
+  assert.equal(at(300).voc_elevated, true);
+});
+
+test('a RuuviTag can never raise the VOC chip', () => {
+  assert.equal(T.run(input()).sensors[0].voc_elevated, false);
+});
+
 test('a RuuviTag reports no air quality fields at all', () => {
   // Rather than absent keys: every card has the same shape, and null is what
   // "this tag cannot measure it" means.

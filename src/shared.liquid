@@ -208,6 +208,14 @@
       {%- if sensor.is_stale -%}
         <span class="label label--small label--gray-out">{% render 'icon', name: 'clock', size: 12 %} stale</span>
       {%- endif -%}
+      {%- comment -%}
+        Only a Ruuvi Air can raise this, and only when the index says the air
+        is worth doing something about — so the card stays quiet the rest of
+        the time, which is most of it.
+      {%- endcomment -%}
+      {%- if sensor.voc_elevated -%}
+        <span class="label label--small label--warning">VOC {{ sensor.voc }}</span>
+      {%- endif -%}
       {% render 'icon', name: sensor.battery_icon, size: 18 %}
     </div>
 

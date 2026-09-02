@@ -110,7 +110,7 @@ const sensors = [
     hex: rawv2({ temperature: -22.6, humidity: null, pressure: null, batteryMv: 2620, sequence: 5540 }) }),
   sensor({ mac: '9C:44:D0:2E:61:07', name: 'Study (Ruuvi Air)', agoSeconds: 175,
     hex: air({ temperature: 22.8, humidity: 44, pressure: 100_940,
-               pm25: 3.2, co2: 842, voc: 147, nox: 1, sequence: 663451 }) }),
+               pm25: 3.2, co2: 842, voc: 187, nox: 1, sequence: 663451 }) }),
   sensor({ mac: 'B5:12:88:70:3F:44', name: 'Garage workbench', stale: true, agoSeconds: 0,
     hex: rawv2({ temperature: 4.1, humidity: 71, pressure: 100_880, batteryMv: 2510, sequence: 118 }) }),
   sensor({ mac: '77:0C:19:B4:52:8A', name: 'Attic hatch', agoSeconds: 0, hex: null }),

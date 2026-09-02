@@ -31,6 +31,12 @@ const INVALID_UINT9 = 0x1ff; // VOC and NOX are 9-bit
 
 const DEFAULT_STALE_AFTER_MINUTES = 30;
 
+// The VOC index is relative, not absolute: 100 is the average of what this
+// particular sensor has recently seen, so a number means little on its own.
+// Sensirion treats 100-150 as ordinary variation and 150 upward as worth
+// ventilating for, which is where a chip earns its place on the card.
+const VOC_ELEVATED = 150;
+
 /* ------------------------------------------------------------------ bytes */
 
 function hexToBytes(hex) {
@@ -426,6 +432,7 @@ function run(input) {
         pm25: null,
         voc: null,
         nox: null,
+        voc_elevated: false,
         alarm: firstTriggeredAlarm(raw),
       });
       continue;
@@ -457,6 +464,10 @@ function run(input) {
       pm25: reading.pm25,
       voc: reading.voc,
       nox: reading.nox,
+
+      // Decided here rather than in Liquid, like the icons: a template should
+      // not carry a threshold.
+      voc_elevated: reading.voc !== null && reading.voc >= VOC_ELEVATED,
       alarm: firstTriggeredAlarm(raw),
     });
   }
