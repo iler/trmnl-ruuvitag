@@ -27,6 +27,7 @@ const FORMAT_AIR = 0xe1;
 const INVALID_INT16 = -32768; // 0x8000
 const INVALID_UINT16 = 0xffff;
 const INVALID_BATTERY_RAW = 2047; // 11-bit max
+const INVALID_UINT9 = 0x1ff; // VOC and NOX are 9-bit
 
 const DEFAULT_STALE_AFTER_MINUTES = 30;
 
@@ -108,6 +109,10 @@ function decodeRawv2(b) {
     humidity: humRaw === INVALID_UINT16 ? null : round(humRaw * 0.0025, 4),
     pressure: pressRaw === INVALID_UINT16 ? null : pressRaw + 50000,
     batteryMv: batteryRaw === INVALID_BATTERY_RAW ? null : 1600 + batteryRaw,
+    pm25: null,
+    co2: null,
+    voc: null,
+    nox: null,
   };
 }
 
@@ -125,12 +130,33 @@ function decodeAir(b) {
   const tempRaw = int16BE(b, 1);
   const humRaw = uint16BE(b, 3);
   const pressRaw = uint16BE(b, 5);
+  const pm25Raw = uint16BE(b, 9);
+  const co2Raw = uint16BE(b, 15);
+
+  // VOC and NOX are 9 bits: a low byte plus one bit from the flags. The spec
+  // page puts those bits at b6 and b7; Ruuvi staff say the LSB end, and a real
+  // payload from a Ruuvi Air agrees with staff. Its flags byte is 0xFC — six
+  // bits set, two clear — which matches this format's habit of filling
+  // reserved bits with ones, and reading b6/b7 there would have a bedroom
+  // holding 0.8 ug/m3 of PM2.5 report VOC 311 and NOX 256. Those do not cohere;
+  // VOC 55 and NOX 0 do.
+  const flags = b[28];
+  const vocRaw = ((flags & 0x01) << 8) | b[17];
+  const noxRaw = (((flags & 0x02) >> 1) << 8) | b[18];
 
   return {
     temperature: tempRaw === INVALID_INT16 ? null : round(tempRaw * 0.005, 3),
     humidity: humRaw === INVALID_UINT16 ? null : round(humRaw * 0.0025, 4),
     pressure: pressRaw === INVALID_UINT16 ? null : pressRaw + 50000,
     batteryMv: null,
+    pm25: pm25Raw === INVALID_UINT16 ? null : round(pm25Raw * 0.1, 1),
+    co2: co2Raw === INVALID_UINT16 ? null : co2Raw,
+
+    // Decoded but not yet drawn: the bit position above is reasoned from one
+    // payload, not proven. They ride in the merge data so the values can be
+    // checked against the Ruuvi app before anything renders them.
+    voc: vocRaw === INVALID_UINT9 ? null : vocRaw,
+    nox: noxRaw === INVALID_UINT9 ? null : noxRaw,
   };
 }
 
@@ -392,6 +418,10 @@ function run(input) {
         battery_level: 'unknown',
         battery_icon: batteryIcon('unknown'),
         temp_icon: temperatureIcon(null),
+        co2: null,
+        pm25: null,
+        voc: null,
+        nox: null,
         alarm: firstTriggeredAlarm(raw),
       });
       continue;
@@ -416,6 +446,13 @@ function run(input) {
       battery_level: batteryLevel,
       battery_icon: batteryIcon(batteryLevel),
       temp_icon: temperatureIcon(temperature),
+
+      // Ruuvi Air only. A card shows CO2 in place of pressure when it has one,
+      // because pressure is the same number on every card in a house.
+      co2: reading.co2,
+      pm25: reading.pm25,
+      voc: reading.voc,
+      nox: reading.nox,
       alarm: firstTriggeredAlarm(raw),
     });
   }
