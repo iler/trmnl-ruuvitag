@@ -133,16 +133,23 @@ function decodeAir(b) {
   const pm25Raw = uint16BE(b, 9);
   const co2Raw = uint16BE(b, 15);
 
-  // VOC and NOX are 9 bits: a low byte plus one bit from the flags. The spec
-  // page puts those bits at b6 and b7; Ruuvi staff say the LSB end, and a real
-  // payload from a Ruuvi Air agrees with staff. Its flags byte is 0xFC — six
-  // bits set, two clear — which matches this format's habit of filling
-  // reserved bits with ones, and reading b6/b7 there would have a bedroom
-  // holding 0.8 ug/m3 of PM2.5 report VOC 311 and NOX 256. Those do not cohere;
-  // VOC 55 and NOX 0 do.
+  // VOC and NOX are 9 bits: a byte plus one bit from the flags. The spec page
+  // names the right bits — b6 for VOC, b7 for NOX — but they are the LEAST
+  // significant bit, not the most: the byte holds the high eight.
+  //
+  // Settled against two live sensors read at the same moment as the Ruuvi app,
+  // which is the only reason this is right rather than plausible:
+  //
+  //   byte17=44, flags 0xBC (b6=0) -> (44 << 1) | 0 = 88   app said 88
+  //   byte17=73, flags 0xFC (b6=1) -> (73 << 1) | 1 = 147  app said 147
+  //
+  // Reading the bit as the MSB instead gives 44 and 73 — half, and the error
+  // hides completely while both sensors happen to sit below 256. NOX confirms
+  // the shape: (byte18 << 1) | b7 is 1 on both, and Ruuvi documents the NOX
+  // index as starting at 1, where the MSB reading yields an out-of-range 0.
   const flags = b[28];
-  const vocRaw = ((flags & 0x01) << 8) | b[17];
-  const noxRaw = (((flags & 0x02) >> 1) << 8) | b[18];
+  const vocRaw = (b[17] << 1) | ((flags >> 6) & 0x01);
+  const noxRaw = (b[18] << 1) | ((flags >> 7) & 0x01);
 
   return {
     temperature: tempRaw === INVALID_INT16 ? null : round(tempRaw * 0.005, 3),
@@ -152,9 +159,6 @@ function decodeAir(b) {
     pm25: pm25Raw === INVALID_UINT16 ? null : round(pm25Raw * 0.1, 1),
     co2: co2Raw === INVALID_UINT16 ? null : co2Raw,
 
-    // Decoded but not yet drawn: the bit position above is reasoned from one
-    // payload, not proven. They ride in the merge data so the values can be
-    // checked against the Ruuvi app before anything renders them.
     voc: vocRaw === INVALID_UINT9 ? null : vocRaw,
     nox: noxRaw === INVALID_UINT9 ? null : noxRaw,
   };

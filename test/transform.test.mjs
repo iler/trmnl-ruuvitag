@@ -107,15 +107,25 @@ test('decodes the air quality fields from a captured payload', () => {
   assert.equal(r.co2, 710);
 });
 
-test('the 9th bits of VOC and NOX come from the low end of the flags byte', () => {
-  // The spec page puts them at b6/b7; Ruuvi staff say the LSB end. This
-  // payload's flags byte is 0xFC, so the two readings disagree: b6/b7 gives
-  // VOC 311 and NOX 256, the LSB end gives 55 and 0. Reserved fields in this
-  // format are all-ones, which 0xFC matches, and 311/256 does not cohere with
-  // the 0.8 ug/m3 of PM2.5 in the same payload.
+test('the flags bit is the LEAST significant bit of VOC and NOX', () => {
+  // Verified against two live sensors read at the same moment as the Ruuvi
+  // app: byte17=44 with flags 0xBC gave 88, byte17=73 with flags 0xFC gave
+  // 147. Treating the bit as the MSB halves the value, and that error is
+  // invisible while a sensor sits below 256 — which both did.
   const r = T.decodeAir(Buffer.from(AIR, 'hex'));
-  assert.equal(r.voc, 55, 'reading b6 would give 311');
-  assert.equal(r.nox, 0, 'reading b7 would give 256');
+  assert.equal(r.voc, 111, 'byte 0x37 = 55, flags 0xFC has b6 set: (55 << 1) | 1');
+  assert.equal(r.nox, 1, 'byte 0x00, flags 0xFC has b7 set: (0 << 1) | 1');
+});
+
+test('the discriminating case: the same byte with the flag bit clear', () => {
+  // Makuuhuone Air, whose flags byte is 0xBC. b6 clear is what separates this
+  // layout from every other candidate; with b6 set it would read 89.
+  const hex = 'e10f6a63d0c201000200050007000801e42c00ffffffffffff9ca79dbcffffffffffcd0d61d2ed8c';
+  const r = T.decodeAir(Buffer.from(hex, 'hex'));
+  assert.equal(r.voc, 88);
+  assert.equal(r.nox, 1);
+  assert.equal(r.co2, 484);
+  close(r.pm25, 0.5, 0.05);
 });
 
 test('a RuuviTag reports no air quality fields at all', () => {
@@ -148,13 +158,13 @@ test('Air sentinels decode to null', () => {
   assert.equal(r.nox, null);
 });
 
-test('a VOC low byte of 0xFF without its flag bit is 255, not unavailable', () => {
-  // The sentinel is the full 9-bit 0x1FF. Treating a 0xFF low byte alone as
-  // "not available" would silently drop a real high reading.
+test('a 0xFF byte without its flag bit is 510, not unavailable', () => {
+  // The sentinel is the full 9-bit 0x1FF, which needs the flag bit too.
+  // Treating the byte alone as "not available" would drop a real reading.
   const h = 'E1' + '8000' + 'FFFF' + 'FFFF' + 'FF'.repeat(18) + 'FFFFFF' + '00' + '00'.repeat(11);
   const r = T.decodeAir(Buffer.from(h, 'hex'));
-  assert.equal(r.voc, 255);
-  assert.equal(r.nox, 255);
+  assert.equal(r.voc, 510);
+  assert.equal(r.nox, 510);
 });
 
 test('an Air payload shorter than 40 bytes is rejected', () => {

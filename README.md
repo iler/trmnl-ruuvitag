@@ -126,11 +126,10 @@ The decoders skip acceleration, TX power, movement and the measurement
 sequence. Nothing on screen uses them, and the sequence number only ever
 existed to deduplicate stored readings, which there are none of.
 
-Ruuvi Air's VOC and NOX indices are decoded but not drawn: the bit position
-they come from is reasoned from one payload rather than proven, so they ride
-in the merge data where they can be checked against the Ruuvi app first.
-Luminosity is not decoded at all — the sensor is not fitted on production
-hardware and the field is always its sentinel.
+Ruuvi Air's VOC and NOX indices are decoded and verified against the Ruuvi
+app, but not drawn — the card has no room left. They ride in the merge data
+for any layout that wants them. Luminosity is not decoded at all: the sensor
+is not fitted on production hardware and the field is always its sentinel.
 
 ## Large screens
 
