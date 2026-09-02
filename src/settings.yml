@@ -31,11 +31,17 @@ custom_fields:
   - keyname: ruuvi_token
     field_type: password
     name: Ruuvi Cloud API token
-    placeholder: Bearer token from Ruuvi Station
+    placeholder: 1234567890/AbCdEf...
     description: Read-only access to your Ruuvi Cloud account
     help_text: >-
-      Ruuvi Station app > Settings > My Ruuvi account > Request an API token.
-      The plugin only reads sensors; it never writes to your account.
+      A Ruuvi <em>Cloud</em> token, which is not the Gateway token in the Ruuvi
+      Station app. Call
+      <a href="https://network.ruuvi.com/register">network.ruuvi.com/register</a>
+      with your account email to have a short verification code emailed to you,
+      then call
+      <a href="https://network.ruuvi.com/verify">network.ruuvi.com/verify</a>
+      with that code to receive the bearer token. The plugin only reads
+      sensors; it never writes to your account.
     required: true
 
   - keyname: featured_sensors
@@ -76,10 +82,12 @@ custom_fields:
       Alarms come from Ruuvi's own alert settings, so the thresholds, delay and
       hysteresis you configured in the Ruuvi app are what the screen shows.
       <br><br>
-      Needs a read-only Ruuvi Cloud API token — in the Ruuvi Station app, go to
-      Settings, My Ruuvi account, Request an API token. "Priority sensors"
-      decides which of them the smaller layouts have room for; leave it blank
-      to keep the order Ruuvi gives.
+      Needs a read-only Ruuvi <em>Cloud</em> API token, which is not the
+      Gateway token: call <code>/register</code> with your account email to be
+      emailed a verification code, then <code>/verify</code> with that code to
+      receive the bearer token. "Priority sensors" decides which sensors the
+      smaller layouts have room for; leave it blank to keep the order Ruuvi
+      gives.
       <br><br>
       Readings are polled with your own token against your own Ruuvi account,
       so the refresh rate is yours to set and does not affect anyone else using

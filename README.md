@@ -45,7 +45,7 @@ no filters to unpack it, which is why the Serverless step exists at all.
 
 | Field | Notes |
 | --- | --- |
-| Ruuvi Cloud API token | Masked. Ruuvi Station > Settings > My Ruuvi account > Request an API token |
+| Ruuvi Cloud API token | Masked. Not the Gateway token: `POST /register` with your account email, then `/verify` with the code it emails you |
 | Priority sensors | Comma-separated names or MACs, best first. Optional |
 | Stale after (minutes) | Default 30 |
 
