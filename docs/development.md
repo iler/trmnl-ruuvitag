@@ -158,10 +158,17 @@ bin/push            # asks before it overwrites
 bin/push --force    # no prompt
 ```
 
-**Run it from your own terminal.** A coding agent's sandbox cannot read
-`~/.config/op`, so `op read` fails there with `operation not permitted` and no
-push happens. In Claude Code, type `! bin/push` so the output lands in the
-conversation.
+**Run it from your own terminal app** — not through a coding agent, and not
+through Claude Code's `!` prefix, which runs in the same sandbox the agent
+does. Either way `op read` fails with:
+
+```
+op: [ERROR] cannot read config at "/Users/…/.config/op/config":
+    operation not permitted
+```
+
+and no push happens. The agent can prepare a branch and tell you what to run;
+the push itself has to come from a shell that can reach `~/.config/op`.
 
 `bin/push` takes the key from the first source that has it:
 
