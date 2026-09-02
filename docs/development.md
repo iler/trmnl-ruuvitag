@@ -301,6 +301,19 @@ There is no narrower key to hand out, so:
   allows six occurrences of `padding`, `justify-content`, `border-radius` and
   friends across all markup, and `no_opacity` rejects opacity outright, because
   it dithers badly on e-ink. Use framework classes and the budget is never near.
+- **E1's VOC and NOX 9th bits are not where the spec page says.** It puts them
+  at flags b6 and b7; Ruuvi staff say the LSB end, and a real payload settles
+  it. Its flags byte is `0xFC` — six bits set, two clear — which matches this
+  format's habit of filling reserved fields with ones, and reading b6/b7 would
+  have a bedroom holding 0.8 ug/m3 of PM2.5 report VOC 311 and NOX 256. VOC 55
+  and NOX 0 cohere with the rest of that payload; 311 and 256 do not.
+- **The VOC and NOX sentinel is the full 9-bit `0x1FF`,** not a `0xFF` low
+  byte. Treating the low byte alone as "not available" would silently drop a
+  real reading of 255.
+- **There is no air quality score in the advertisement.** Ruuvi computes its
+  0-100 score from PM2.5 and CO2 in the app. Both inputs are broadcast, so the
+  score could be re-derived — but a number labelled "air quality" that
+  disagreed with the Ruuvi app would be worse than not showing one.
 - **`trmnlp lint` does not read `transform.js`.** Its custom-fields check scans
   only the markup and the polling settings, so a field consumed solely by the
   transform is reported as unused. `shared.liquid` carries a comment naming

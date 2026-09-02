@@ -52,15 +52,30 @@ function rawv2({ temperature, humidity, pressure, batteryMv, sequence }) {
   ]);
 }
 
-/** Data Format E1 (Ruuvi Air), 40 bytes. Air quality bytes left as filler. */
-function air({ temperature, humidity, pressure }) {
-  const head = [
+/** Data Format E1 (Ruuvi Air), 40 bytes. */
+function air({ temperature, humidity, pressure, pm25, co2, voc, nox, sequence }) {
+  const pm = (value) => int16(Math.round(value / 0.1));
+  return advertisement([
     0xe1,
     ...int16(Math.round(temperature / 0.005)),
     ...int16(Math.round(humidity / 0.0025)),
     ...int16(pressure - 50000),
-  ];
-  return advertisement([...head, ...new Array(40 - head.length).fill(0x00)]);
+    ...pm(pm25 * 0.5),                     // PM1.0, always below PM2.5
+    ...pm(pm25),
+    ...pm(pm25 * 1.4),                     // PM4.0
+    ...pm(pm25 * 1.7),                     // PM10
+    ...int16(co2),
+    voc & 0xff,
+    nox & 0xff,
+    0xff, 0xff, 0xff,                      // luminosity: not fitted on production hardware
+    0xff, 0xff, 0xff,                      // reserved
+    (sequence >> 16) & 0xff, (sequence >> 8) & 0xff, sequence & 0xff,
+    // Reserved bits are ones, as everywhere else in this format; the two data
+    // bits carry the 9th bit of VOC and NOX.
+    0xfc | ((voc >> 8) & 0x01) | (((nox >> 8) & 0x01) << 1),
+    0xff, 0xff, 0xff, 0xff, 0xff,          // reserved
+    0xcd, 0x0d, 0x61, 0xd2, 0xed, 0x8c,    // MAC
+  ]);
 }
 
 function sensor({ mac, name, hex, agoSeconds, stale = false, alerts = [] }) {
@@ -94,7 +109,8 @@ const sensors = [
   sensor({ mac: 'F0:3B:C1:88:9A:2D', name: 'Living room freezer', agoSeconds: 260,
     hex: rawv2({ temperature: -22.6, humidity: null, pressure: null, batteryMv: 2620, sequence: 5540 }) }),
   sensor({ mac: '9C:44:D0:2E:61:07', name: 'Study (Ruuvi Air)', agoSeconds: 175,
-    hex: air({ temperature: 22.8, humidity: 44, pressure: 100_940 }) }),
+    hex: air({ temperature: 22.8, humidity: 44, pressure: 100_940,
+               pm25: 3.2, co2: 842, voc: 96, nox: 1, sequence: 663451 }) }),
   sensor({ mac: 'B5:12:88:70:3F:44', name: 'Garage workbench', stale: true, agoSeconds: 0,
     hex: rawv2({ temperature: 4.1, humidity: 71, pressure: 100_880, batteryMv: 2510, sequence: 118 }) }),
   sensor({ mac: '77:0C:19:B4:52:8A', name: 'Attic hatch', agoSeconds: 0, hex: null }),

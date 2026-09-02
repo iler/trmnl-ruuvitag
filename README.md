@@ -31,6 +31,7 @@ no filters to unpack it, which is why the Serverless step exists at all.
 | `src/transform.js` | Serverless `run(input)`; the decoding and shaping |
 | `src/shared.liquid` | Assigns and `{% template %}` partials for every layout |
 | `src/full.liquid` | Hero plus indexed ledger; a card grid on large screens |
+| — | A Ruuvi Air card shows CO2 where a RuuviTag shows pressure |
 | `src/half_horizontal.liquid` | Four sensors — lines below `lg`, cards above |
 | `src/half_vertical.liquid` | Six sensors — cards either way, two columns on `lg` |
 | `src/quadrant.liquid` | One sensor |
@@ -124,6 +125,12 @@ a backend again.
 The decoders skip acceleration, TX power, movement and the measurement
 sequence. Nothing on screen uses them, and the sequence number only ever
 existed to deduplicate stored readings, which there are none of.
+
+Ruuvi Air's VOC and NOX indices are decoded but not drawn: the bit position
+they come from is reasoned from one payload rather than proven, so they ride
+in the merge data where they can be checked against the Ruuvi app first.
+Luminosity is not decoded at all — the sensor is not fitted on production
+hardware and the field is always its sentinel.
 
 ## Large screens
 

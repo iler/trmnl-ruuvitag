@@ -101,17 +101,60 @@ test('decodes a captured Air payload', () => {
   assert.equal(r.pressure, 98517);
 });
 
+test('decodes the air quality fields from a captured payload', () => {
+  const r = T.decodeAir(Buffer.from(AIR, 'hex'));
+  close(r.pm25, 0.8, 0.05);
+  assert.equal(r.co2, 710);
+});
+
+test('the 9th bits of VOC and NOX come from the low end of the flags byte', () => {
+  // The spec page puts them at b6/b7; Ruuvi staff say the LSB end. This
+  // payload's flags byte is 0xFC, so the two readings disagree: b6/b7 gives
+  // VOC 311 and NOX 256, the LSB end gives 55 and 0. Reserved fields in this
+  // format are all-ones, which 0xFC matches, and 311/256 does not cohere with
+  // the 0.8 ug/m3 of PM2.5 in the same payload.
+  const r = T.decodeAir(Buffer.from(AIR, 'hex'));
+  assert.equal(r.voc, 55, 'reading b6 would give 311');
+  assert.equal(r.nox, 0, 'reading b7 would give 256');
+});
+
+test('a RuuviTag reports no air quality fields at all', () => {
+  // Rather than absent keys: every card has the same shape, and null is what
+  // "this tag cannot measure it" means.
+  const r = T.decodeRawv2(Buffer.from('0512FC5394C37C0004FFFC040CAC364200CDCBB8334C884F', 'hex'));
+  assert.equal(r.co2, null);
+  assert.equal(r.pm25, null);
+  assert.equal(r.voc, null);
+  assert.equal(r.nox, null);
+});
+
 test('Air never reports a battery voltage', () => {
   // E1 does not broadcast one. Guessing "full" here would hide a dying tag.
   assert.equal(T.decodeAir(Buffer.from(AIR, 'hex')).batteryMv, null);
 });
 
 test('Air sentinels decode to null', () => {
-  const h = 'E1' + '8000' + 'FFFF' + 'FFFF' + 'FF'.repeat(18) + 'FFFFFF' + '00' + '00'.repeat(11);
+  // Flags 0xFF as well, so the 9th bits are set: VOC and NOX only reach their
+  // 0x1FF sentinel when the flag bit joins a 0xFF low byte. With flags 0x00
+  // the same low bytes decode to a legitimate 255.
+  const h = 'E1' + '8000' + 'FFFF' + 'FFFF' + 'FF'.repeat(18) + 'FFFFFF' + 'FF' + '00'.repeat(11);
   const r = T.decodeAir(Buffer.from(h, 'hex'));
   assert.equal(r.temperature, null);
   assert.equal(r.humidity, null);
   assert.equal(r.pressure, null);
+  assert.equal(r.pm25, null);
+  assert.equal(r.co2, null);
+  assert.equal(r.voc, null);
+  assert.equal(r.nox, null);
+});
+
+test('a VOC low byte of 0xFF without its flag bit is 255, not unavailable', () => {
+  // The sentinel is the full 9-bit 0x1FF. Treating a 0xFF low byte alone as
+  // "not available" would silently drop a real high reading.
+  const h = 'E1' + '8000' + 'FFFF' + 'FFFF' + 'FF'.repeat(18) + 'FFFFFF' + '00' + '00'.repeat(11);
+  const r = T.decodeAir(Buffer.from(h, 'hex'));
+  assert.equal(r.voc, 255);
+  assert.equal(r.nox, 255);
 });
 
 test('an Air payload shorter than 40 bytes is rejected', () => {
