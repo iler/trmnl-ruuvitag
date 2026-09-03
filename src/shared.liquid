@@ -25,13 +25,16 @@
 {%- endcomment -%}
 
 <style>
-  /* Kept deliberately small: spacing, alignment, type, the grid and the corner
-     radius are all framework classes in the markup. What is left here is only
-     what the framework has no utility for — the card frame, the header rule,
-     and making the card rows share the leftover height. */
-  .ruuvi { gap: 0.75rem; block-size: 100%; }
+  /* Everything the framework has a class for uses one: spacing, alignment,
+     type, the grid, the corner radius, the header rule (border--h-1), icon
+     display (inline-block). What is left is only what it has no utility for.
 
-  .ruuvi__header { border-block-end: 2px solid currentColor; }
+     Checked against plugins.css 3.1.1: `border--h-*` and `border--v-*` draw a
+     single 1px edge, so there is nothing for a card's four-sided frame; there
+     is no grid-auto-rows utility, so equal card rows need one declaration; and
+     `data-clamp` is JavaScript with no CSS behind it, so the ledger's
+     truncation needs a fallback for renderers where that has not run. */
+  .ruuvi { gap: 0.75rem; block-size: 100%; }
 
   /* Equal rows, filling whatever height is left below the header. */
   .ruuvi__grid { grid-auto-rows: 1fr; flex: 1 1 auto; min-block-size: 0; }
@@ -75,7 +78,7 @@
     white-space: nowrap;
   }
 
-  .ruuvi-icon { display: inline-block; vertical-align: middle; }
+  .ruuvi-icon { vertical-align: middle; }
 </style>
 
 {%- assign primary = featured | first -%}
@@ -131,7 +134,7 @@
 {%- endcomment -%}
 {% template icon %}
   {%- assign px = size | default: 24 -%}
-  <svg class="ruuvi-icon" xmlns="http://www.w3.org/2000/svg" width="{{ px }}" height="{{ px }}"
+  <svg class="ruuvi-icon inline-block" xmlns="http://www.w3.org/2000/svg" width="{{ px }}" height="{{ px }}"
        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
        stroke-linecap="round" stroke-linejoin="round">
     {%- case name -%}
