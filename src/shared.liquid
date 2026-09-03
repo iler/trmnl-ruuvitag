@@ -101,6 +101,7 @@
   {%- if sensor.alarm %}<span class="label label--small label--outline">{{ sensor.alarm }}</span>{% endif -%}
   {%- if sensor.battery_low %}<span class="label label--small label--outline">bat</span>{% endif -%}
   {%- if sensor.is_stale %}<span class="label label--small label--gray 1bit:text--black">stale</span>{% endif -%}
+  {%- if sensor.voc_elevated %}<span class="label label--small label--outline">VOC {{ sensor.voc }}</span>{% endif -%}
 {% endtemplate %}
 
 {%- comment -%}

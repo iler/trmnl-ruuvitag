@@ -34,17 +34,33 @@
                 <span class="label label--small">Humidity</span>
                 <span class="value value--base value--tnums">{{ primary.humidity | default: '&mdash;' }}%</span>
               </div>
-              <div class="flex flex--col gap--xxsmall">
-                <span class="label label--small">Pressure</span>
-                <span class="value value--base value--tnums">{{ primary.pressure_hpa | default: '&mdash;' }}<span class="value value--xsmall"> hPa</span></span>
-              </div>
+              {%- comment -%}
+                A Ruuvi Air swaps pressure for CO2, as its card does. Unlike
+                the card, the hero labels each stat and carries a unit, so
+                both are spelled out here — "1002 ppm" is no wider than the
+                "1009 hPa" this slot already holds.
+              {%- endcomment -%}
+              {%- if primary.co2 != blank -%}
+                <div class="flex flex--col gap--xxsmall">
+                  <span class="label label--small">CO&#8322;</span>
+                  <span class="value value--base value--tnums">{{ primary.co2 }}<span class="value value--xsmall"> ppm</span></span>
+                </div>
+              {%- else -%}
+                <div class="flex flex--col gap--xxsmall">
+                  <span class="label label--small">Pressure</span>
+                  <span class="value value--base value--tnums">{{ primary.pressure_hpa | default: '&mdash;' }}<span class="value value--xsmall"> hPa</span></span>
+                </div>
+              {%- endif -%}
             </div>
 
             {%- comment -%} Pushes the footer line to the bottom of the column. {%- endcomment -%}
             <div class="stretch-y"></div>
 
             <div class="flex flex--row gap--xsmall">
-              <span class="label label--small">read at {{ primary.measured_at }}</span>
+              <span class="label label--small">
+                {%- if primary.co2 != blank %}PM2.5 {{ primary.pm25 | default: '&mdash;' }} &middot; {% endif -%}
+                read at {{ primary.measured_at }}
+              </span>
               {% render 'sensor_flags', sensor: primary %}
             </div>
           {%- endif -%}
