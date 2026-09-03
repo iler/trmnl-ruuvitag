@@ -251,12 +251,13 @@
         </span>
         {%- if sensor.co2 != blank -%}
           {%- comment -%}
-            The unit is not decoration: 842 next to a neighbouring card's 1009
-            reads as a pressure until something says otherwise, and a 12px
-            glyph is thin evidence on e-ink.
+            No unit, because no other stat carries one: humidity is a droplet
+            and a number, pressure a gauge and a number. The icon is the unit
+            marker here, and spelling out "ppm" cost the row enough width to
+            wrap both stats onto second lines once text_scale had its share.
           {%- endcomment -%}
           <span class="value value--small value--tnums">
-            {% render 'icon', name: 'wind', size: 12 %} {{ sensor.co2 }}<span class="value value--xsmall"> ppm</span>
+            {% render 'icon', name: 'wind', size: 12 %} {{ sensor.co2 }}
           </span>
         {%- else -%}
           <span class="value value--small value--tnums">
