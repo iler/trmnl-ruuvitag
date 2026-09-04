@@ -11,7 +11,7 @@
   <div class="layout layout--col lg:hidden">
     <div class="grid grid--cols-12 gap--large stretch-y">
 
-      <div class="col col--span-5">
+      <div class="col col--span-4">
         <div class="flex flex--col stretch-y gap--medium{% if primary.is_stale %} text--gray-30{% endif %}">
           <div class="flex flex--col gap--xsmall">
             <span class="label label--small label--underline">Station 01</span>
@@ -35,20 +35,20 @@
                 <span class="value value--base value--tnums">{{ primary.humidity | default: '&mdash;' }}%</span>
               </div>
               {%- comment -%}
-                A Ruuvi Air swaps pressure for CO2, as its card does. Unlike
-                the card, the hero labels each stat and carries a unit, so
-                both are spelled out here — "1002 ppm" is no wider than the
-                "1009 hPa" this slot already holds.
+                A Ruuvi Air swaps pressure for CO2, as its card does. Neither
+                carries a unit: the label above it already says which stat
+                this is, and at text_scale large the unit was wide enough to
+                wrap onto its own line.
               {%- endcomment -%}
               {%- if primary.co2 != blank -%}
                 <div class="flex flex--col gap--xsmall">
                   <span class="label label--small">CO&#8322;</span>
-                  <span class="value value--base value--tnums">{{ primary.co2 }}<span class="value value--xsmall"> ppm</span></span>
+                  <span class="value value--base value--tnums">{{ primary.co2 }}</span>
                 </div>
               {%- else -%}
                 <div class="flex flex--col gap--xsmall">
                   <span class="label label--small">Pressure</span>
-                  <span class="value value--base value--tnums">{{ primary.pressure_hpa | default: '&mdash;' }}<span class="value value--xsmall"> hPa</span></span>
+                  <span class="value value--base value--tnums">{{ primary.pressure_hpa | default: '&mdash;' }}</span>
                 </div>
               {%- endif -%}
             </div>
@@ -67,7 +67,7 @@
         </div>
       </div>
 
-      <div class="col col--span-7">
+      <div class="col col--span-8">
         <table class="table table--small table--indexed ruuvi-ledger">
           <thead>
             <tr>
@@ -75,7 +75,6 @@
               <th class="pl--1"><span class="title title--small">Station</span></th>
               <th class="text--right pl--1"><span class="title title--small">&deg;C</span></th>
               <th class="text--right pl--1"><span class="title title--small">RH</span></th>
-              <th class="text--right pl--1"><span class="title title--small">hPa</span></th>
               <th class="text--right pl--1"><span class="title title--small">Time</span></th>
             </tr>
           </thead>
@@ -99,17 +98,16 @@
                   </div>
                 </td>
                 {%- if sensor.status == 'no_data' -%}
-                  <td colspan="4" class="text--right pl--1"><span class="label label--small">no data</span></td>
+                  <td colspan="3" class="text--right pl--1"><span class="label label--small">no data</span></td>
                 {%- else -%}
                   <td class="text--right pl--1"><span class="value value--small value--tnums">{{ sensor.temperature }}&deg;</span></td>
                   <td class="text--right pl--1"><span class="value value--small value--tnums">{{ sensor.humidity | default: '&mdash;' }}%</span></td>
-                  <td class="text--right pl--1"><span class="value value--small value--tnums">{{ sensor.pressure_hpa | default: '&mdash;' }}</span></td>
                   <td class="text--right pl--1"><span class="label label--small">{{ sensor.measured_at }}</span></td>
                 {%- endif -%}
               </tr>
             {%- else -%}
               <tr>
-                <td colspan="6" class="text--center"><span class="label label--small">no additional stations</span></td>
+                <td colspan="5" class="text--center"><span class="label label--small">no additional stations</span></td>
               </tr>
             {%- endfor -%}
           </tbody>
