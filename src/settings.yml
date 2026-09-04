@@ -46,7 +46,7 @@ custom_fields:
   - keyname: featured_sensors
     field_type: multi_string
     name: Priority sensors
-    placeholder: Living room, Bedroom, Outdoor
+    placeholder: Living room
     description: The sensors that matter most, in order
     help_text: >-
       One sensor per row, most important first. Match a sensor by its Ruuvi
