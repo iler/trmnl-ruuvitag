@@ -31,10 +31,13 @@ const INVALID_UINT9 = 0x1ff; // VOC and NOX are 9-bit
 
 const DEFAULT_STALE_AFTER_MINUTES = 30;
 
-// The VOC index is relative, not absolute: 100 is the average of what this
-// particular sensor has recently seen, so a number means little on its own.
-// Sensirion treats 100-150 as ordinary variation and 150 upward as worth
-// ventilating for, which is where a chip earns its place on the card.
+// Sensirion's VOC Index, which Ruuvi describes at
+// https://ruuvi.com/air-quality-sensors-explained/ — it runs 0 to 500 and is
+// relative, not absolute: 100 is the average of what this particular sensor
+// has recently seen, so a bare number means little. Ordinary variation sits
+// between 100 and 150; above that is worth ventilating for, which is where a
+// chip earns its place on the card. Revisit this threshold against that page
+// rather than by taste.
 const VOC_ELEVATED = 150;
 
 /* ------------------------------------------------------------------ bytes */
