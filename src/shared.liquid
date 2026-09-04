@@ -45,7 +45,6 @@
     gap: 0.25rem;
     border: 1.5px solid currentColor;
     min-inline-size: 0;
-    box-sizing: border-box;
   }
   .ruuvi-card--primary { border-width: 3px; }
   /* A thick top edge marks a card that needs attention — legible from across
@@ -54,17 +53,12 @@
   .ruuvi-card--flagged { border-block-start-width: 8px; }
 
   .ruuvi-card__head { min-block-size: 1.25rem; }
-  .ruuvi-card__name { line-height: 1.05; text-wrap: balance; }
 
   /* Icon, number and unit share a baseline; the row absorbs the slack so the
      stats and footer stay pinned to the bottom of the card. */
   .ruuvi-card__hero { align-items: baseline; flex: 1 1 auto; min-inline-size: 0; }
 
   .ruuvi-card__stats { border-block-start: 1.5px solid currentColor; }
-
-  /* Right-aligned columns otherwise butt together, running the "hPa" and
-     "Time" headers into one word. */
-  .ruuvi-ledger th, .ruuvi-ledger td { padding-inline-start: 0.35rem; }
 
   /* data-clamp is driven by the framework's JS. Truncating in CSS as well
      keeps a long room name on one line even where that script has not run,

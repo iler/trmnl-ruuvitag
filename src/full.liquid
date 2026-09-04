@@ -13,7 +13,7 @@
 
       <div class="col col--span-5">
         <div class="flex flex--col stretch-y gap--medium{% if primary.is_stale %} text--gray-30{% endif %}">
-          <div class="flex flex--col gap--xxsmall">
+          <div class="flex flex--col gap--xsmall">
             <span class="label label--small label--underline">Station 01</span>
             <span class="title" data-clamp="1">{{ primary.name }}</span>
           </div>
@@ -30,7 +30,7 @@
             <div class="divider"></div>
 
             <div class="grid grid--cols-2 gap--medium">
-              <div class="flex flex--col gap--xxsmall">
+              <div class="flex flex--col gap--xsmall">
                 <span class="label label--small">Humidity</span>
                 <span class="value value--base value--tnums">{{ primary.humidity | default: '&mdash;' }}%</span>
               </div>
@@ -41,12 +41,12 @@
                 "1009 hPa" this slot already holds.
               {%- endcomment -%}
               {%- if primary.co2 != blank -%}
-                <div class="flex flex--col gap--xxsmall">
+                <div class="flex flex--col gap--xsmall">
                   <span class="label label--small">CO&#8322;</span>
                   <span class="value value--base value--tnums">{{ primary.co2 }}<span class="value value--xsmall"> ppm</span></span>
                 </div>
               {%- else -%}
-                <div class="flex flex--col gap--xxsmall">
+                <div class="flex flex--col gap--xsmall">
                   <span class="label label--small">Pressure</span>
                   <span class="value value--base value--tnums">{{ primary.pressure_hpa | default: '&mdash;' }}<span class="value value--xsmall"> hPa</span></span>
                 </div>
@@ -71,12 +71,12 @@
         <table class="table table--small table--indexed ruuvi-ledger">
           <thead>
             <tr>
-              <th></th>
-              <th><span class="title title--small">Station</span></th>
-              <th class="text--right"><span class="title title--small">&deg;C</span></th>
-              <th class="text--right"><span class="title title--small">RH</span></th>
-              <th class="text--right"><span class="title title--small">hPa</span></th>
-              <th class="text--right"><span class="title title--small">Time</span></th>
+              <th class="pl--1"></th>
+              <th class="pl--1"><span class="title title--small">Station</span></th>
+              <th class="text--right pl--1"><span class="title title--small">&deg;C</span></th>
+              <th class="text--right pl--1"><span class="title title--small">RH</span></th>
+              <th class="text--right pl--1"><span class="title title--small">hPa</span></th>
+              <th class="text--right pl--1"><span class="title title--small">Time</span></th>
             </tr>
           </thead>
           <tbody>
@@ -99,12 +99,12 @@
                   </div>
                 </td>
                 {%- if sensor.status == 'no_data' -%}
-                  <td colspan="4" class="text--right"><span class="label label--small">no data</span></td>
+                  <td colspan="4" class="text--right pl--1"><span class="label label--small">no data</span></td>
                 {%- else -%}
-                  <td class="text--right"><span class="value value--small value--tnums">{{ sensor.temperature }}&deg;</span></td>
-                  <td class="text--right"><span class="value value--small value--tnums">{{ sensor.humidity | default: '&mdash;' }}%</span></td>
-                  <td class="text--right"><span class="value value--small value--tnums">{{ sensor.pressure_hpa | default: '&mdash;' }}</span></td>
-                  <td class="text--right"><span class="label label--small">{{ sensor.measured_at }}</span></td>
+                  <td class="text--right pl--1"><span class="value value--small value--tnums">{{ sensor.temperature }}&deg;</span></td>
+                  <td class="text--right pl--1"><span class="value value--small value--tnums">{{ sensor.humidity | default: '&mdash;' }}%</span></td>
+                  <td class="text--right pl--1"><span class="value value--small value--tnums">{{ sensor.pressure_hpa | default: '&mdash;' }}</span></td>
+                  <td class="text--right pl--1"><span class="label label--small">{{ sensor.measured_at }}</span></td>
                 {%- endif -%}
               </tr>
             {%- else -%}
@@ -141,7 +141,7 @@
 
   <div class="layout layout--col hidden lg:flex ruuvi">
     <header class="flex flex--row flex--between flex--bottom self--stretch pb--2 border--h-1 border--h-black ruuvi__header">
-      <div class="flex flex--col gap--xxsmall">
+      <div class="flex flex--col gap--xsmall">
         <span class="title title--large">Indoor climate</span>
         <span class="label label--small label--gray 1bit:text--black">
           {{- stats.total }} stations &middot; {{ updated_at }} &middot; {{ time_zone_label -}}
