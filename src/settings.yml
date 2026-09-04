@@ -47,12 +47,13 @@ custom_fields:
     field_type: multi_string
     name: Priority sensors
     placeholder: Living room, Bedroom, Outdoor
-    description: Which sensors matter most, best first
+    description: The sensors that matter most, in order
     help_text: >-
-      Sets the order, so the small layouts show the ones you name first — a
-      quadrant shows one, a half shows a few, the full screen shows them all.
-      Match a sensor by its Ruuvi name or its MAC address. Sensors you leave
-      out still appear, after the ones you list. Leave blank to keep the order
+      One sensor per row, most important first. Match a sensor by its Ruuvi
+      name or by its MAC address, with or without separators. The order decides
+      what the smaller layouts have room for: a quadrant shows one, a half
+      shows a few, the full screen shows them all. Sensors you leave out still
+      appear, after the ones you list. Leave the list empty to keep the order
       Ruuvi gives.
 
   - keyname: stale_after_minutes
@@ -87,13 +88,11 @@ custom_fields:
       "Priority sensors" decides which sensors the smaller layouts have room
       for; leave it blank to keep the order Ruuvi gives.
       <br><br>
-      Readings are polled with your own token against your own Ruuvi account,
-      so the refresh rate is yours to set and does not affect anyone else using
-      this recipe.
+      Your token is stored by TRMNL and sent from TRMNL's servers to Ruuvi
+      Cloud, and nowhere else. The plugin only reads your sensors; it never
+      writes to your Ruuvi account. Because it polls with your own token
+      against your own account, the refresh rate is yours to set and does not
+      affect anyone else using this recipe.
       <br><br>
       Built by Ilari Mäkelä. Source and issues:
       <a href="https://github.com/iler/trmnl-ruuvitag">github.com/iler/trmnl-ruuvitag</a>
-    help_text: >-
-      Your Ruuvi token is stored by TRMNL and sent from TRMNL's servers to
-      Ruuvi Cloud. This plugin only reads your sensors — it never writes to
-      your Ruuvi account, and nothing is sent anywhere else.
