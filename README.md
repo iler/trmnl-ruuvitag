@@ -33,8 +33,8 @@ no filters to unpack it, which is why the Serverless step exists at all.
 | `src/full.liquid` | Hero plus indexed ledger; a card grid on large screens |
 | — | A Ruuvi Air card shows CO2 where a RuuviTag shows pressure |
 | `src/half_horizontal.liquid` | Four sensors — lines below `lg`, cards above |
-| `src/half_vertical.liquid` | Six sensors — cards either way, two columns on `lg` |
-| `src/quadrant.liquid` | One sensor |
+| `src/half_vertical.liquid` | Six sensors — rows below `lg`, cards above |
+| `src/quadrant.liquid` | One sensor below `lg`, two as cards above |
 | `test/transform.test.mjs` | Spec vectors and behaviour for the transform |
 | `demo/build-fixture.js` | Regenerates the demo response below |
 | `demo/sensors-dense.json` | A stand-in Ruuvi response covering every branch |
