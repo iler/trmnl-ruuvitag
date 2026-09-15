@@ -5,13 +5,16 @@
   800x230 and only compact lines fit. On TRMNL X it is roughly 1040x390 —
   room for a row of the same cards the full screen uses, which is why the
   sensor_line version alone looked lost there.
+
+  No heading below lg. Four lines and a heading need more than the ~185px the
+  half leaves at text_scale large, and the heading was clipped at the top. The
+  title bar already names the plugin.
 {%- endcomment -%}
 
 {%- if fault != '' -%}
   {% render 'notice', headline: 'Ruuvi', detail: fault %}
 {%- else -%}
   <div class="layout layout--col lg:hidden">
-    <span class="title title--small">Indoor sensors</span>
     <div class="flex flex--col gap--small stretch-x">
       {%- for sensor in featured limit: 4 -%}
         {% render 'sensor_line', sensor: sensor, with_humidity: true %}
