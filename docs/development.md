@@ -34,11 +34,11 @@ interpolates env into the polling settings but hands templates the raw string,
 so a field a template or the transform reads must not use `{{ env.* }}` — it
 would render the Liquid source instead of the value.
 
-## Previewing the TRMNL X layout
+## Previewing every device, size and orientation
 
-`full.liquid` carries two designs behind `lg:hidden` / `hidden lg:flex`, and
-**`trmnlp` cannot render the `lg` one.** Its renderer builds the screen class
-from exactly one input:
+Every layout carries two designs behind `lg:hidden` / `hidden lg:flex`, and
+**`trmnlp serve` renders neither device in particular.** Its renderer builds
+the screen class from exactly one input:
 
 ```ruby
 def screen_classes(classes = 'screen')
@@ -47,47 +47,56 @@ def screen_classes(classes = 'screen')
 end
 ```
 
-No `screen--lg`, no `screen--v2`, whatever `width` and `height` say — those set
-`trmnl.device.*` and the PNG size only. The render template is hardcoded inside
-the gem, so a project cannot override it either. The `lg:` utilities never
-activate locally.
+No `screen--lg`, no `screen--v2`, no `screen--portrait`, whatever `width` and
+`height` say — those set `trmnl.device.*` and the PNG size only. The render
+template is hardcoded inside the gem, so a project cannot override it. The
+`lg:`, `portrait:` and `text-scale` utilities never activate locally.
 
-Patch the built HTML instead:
+`trmnlp build` does write the mashup wrapper, though. `_build/half_vertical.html`
+wraps the markup in `<div class="mashup mashup--1Lx1R"><div class="view
+view--half_vertical">`, so the only thing missing is the class list on
+`.screen`. Put it there and every size previews, mashups included:
 
 ```sh
 docker run --rm -v "$PWD:/plugin" trmnl/trmnlp build
 
-sed 's|<div class="screen">|<div class="screen screen--lg screen--4bit" \
-    style="--screen-w:1040px;--screen-h:780px;--full-w:1040px;--full-h:780px;">|' \
-    _build/full.html > _build/full_x.html
+sed 's|<div class="screen">|<div class="screen screen--v2 screen--4bit screen--lg screen--portrait">|' \
+    _build/half_vertical.html > _build/x.html
 
 docker run --rm -v "$PWD:/plugin" --entrypoint firefox trmnl/trmnlp \
-    --headless --screenshot /plugin/_build/x.png --window-size=1060,820 \
-    file:///plugin/_build/full_x.html
+    --headless --screenshot /plugin/_build/x.png --window-size=1424,1892 \
+    file:///plugin/_build/x.html
 ```
 
-**Set the canvas to the CSS size, not the device's pixel count.** TRMNL X
-reports 1872x1404 but renders at `scale_factor: 1.8`, so the CSS canvas is
-1040x780. Sizing against 1872 gives a layout roughly twice the room it has, and
-the overflow only shows up on the panel.
+The classes that matter:
 
-Swap `screen--lg screen--4bit` for `screen--md screen--1bit`, and drop the style
-attribute, to check the small layout.
+| Class | Gives |
+|---|---|
+| `screen--og screen--1bit screen--md` | TRMNL OG, 800x480 |
+| `screen--v2 screen--4bit screen--lg` | TRMNL X, 1040x780 |
+| `screen--portrait` | swaps width and height |
+| `screen--text-scale-large` | what the X actually ships with |
 
-**`trmnlp` cannot render a PNG narrower than about 450px.** Its headless
-Firefox clamps the viewport, so `half_vertical` (400x480) and `quadrant`
-(400x240) fail with `the browser clamped the viewport to 450x480`. Use the HTML
-render in a browser sized to the real viewport instead:
+**Size the window in device pixels, not CSS pixels.** plugins.css builds the
+`.screen` box at the CSS size times `--pixel-ratio`, which is 1.8 on the X. So
+a 1040x780 canvas needs a 1872x1404 window; anything smaller silently crops
+the capture rather than reflowing it. OG is 1:1.
 
-```
-http://localhost:4567/render/half_vertical.html?width=400&height=480
-http://localhost:4567/render/quadrant.html?width=400&height=240
-```
+The framework derives each mashup view from the screen, so the geometry comes
+out right on its own: a half-vertical is 375x450 on OG and 375x1010 on a
+portrait X, and a quadrant 505x345 on a landscape X.
 
-**Mashup sizes do not preview at all.** `screen--v2` renders halves about 1.8x
-too large; setting the canvas by hand renders them blank, because `.layout`
-takes the full screen width while a half view is narrower. Check
-`half_horizontal` and `half_vertical` on real hardware.
+**Check `text-scale-large`.** The device log names it —
+`Appearance(... scale_factor: 1.8, text_scale: large, css_size: lg)` — and it
+multiplies every font size by 1.25. Layouts that fit at the default overrun
+there, which is how the half-vertical, the card name and the stats row were
+each found to.
+
+**`trmnlp serve` cannot render a PNG narrower than about 450px.** Its headless
+Firefox clamps the viewport, so the `/render/*.png` routes fail for
+`half_vertical` and `quadrant` with `the browser clamped the viewport to
+450x480`. The build-and-patch recipe above has no such limit, because it
+screenshots the whole screen rather than one view.
 
 ## Preview states Ruuvi will not produce on demand
 
@@ -282,6 +291,16 @@ There is no narrower key to hand out, so:
 
 ## Traps found the hard way
 
+- **The MCP server's `MarkupsScreenshotTool` has no portrait mode, whatever
+  its `orientation` argument says.** It swaps the canvas width and height but
+  does not put `screen--portrait` on the screen, so every `portrait:` utility
+  stays inactive and the shot shows the landscape design on a rotated canvas.
+  Three classes give it away at once: a "portrait" half-horizontal renders
+  four columns where `portrait:grid--cols-2` asks for two, a full renders
+  four where `portrait:grid--cols-3` asks for three, and a half-vertical two
+  where `portrait:grid--cols-1` asks for one. Use the build-and-patch recipe
+  above for portrait, or the editor's own portrait toggle, which does set the
+  class.
 - **TRMNL X renders at `scale_factor: 1.8`.** It reports 1872x1404; the CSS
   canvas is 1040x780. The device log names it:
   `Appearance(... scale_factor: 1.8, text_scale: large, css_size: lg)`.

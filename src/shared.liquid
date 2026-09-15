@@ -29,7 +29,7 @@
      type, the grid, the corner radius, the header rule (border--h-1), icon
      display (inline-block). What is left is only what it has no utility for.
 
-     Checked against plugins.css 3.1.1: `border--h-*` and `border--v-*` draw a
+     Checked against plugins.css 3.3.0: `border--h-*` and `border--v-*` draw a
      single 1px edge, so there is nothing for a card's four-sided frame; there
      is no grid-auto-rows utility, so equal card rows need one declaration; and
      `data-clamp` is JavaScript with no CSS behind it, so the ledger's
@@ -54,23 +54,60 @@
 
   .ruuvi-card__head { min-block-size: 1.25rem; }
 
+  /* Name and hero, stacked, taking whatever height the stats and the footer
+     leave — so those two stay pinned to the bottom of the card. Written out
+     rather than assembled from flex utilities: `flex--col` centres its
+     children where this wants them stretched, and the class that undoes that
+     and the `portrait:` class below resolve by source order, not by intent. */
+  .ruuvi-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1 1 auto;
+    min-inline-size: 0;
+  }
+
+  /* Where the slot is wider than it is tall, the two share a row instead and
+     the card keeps a row's worth of height. The name takes the slack; the
+     hero stops absorbing it and sits at the right. */
+  .screen--portrait .ruuvi-card--wide .ruuvi-card__body { flex-direction: row; align-items: center; }
+  .screen--portrait .ruuvi-card--wide .ruuvi-card__name { flex: 1 1 auto; }
+  .screen--portrait .ruuvi-card--wide .ruuvi-card__hero { flex: 0 0 auto; }
+
   /* Icon, number and unit share a baseline; the row absorbs the slack so the
      stats and footer stay pinned to the bottom of the card. */
   .ruuvi-card__hero { align-items: baseline; flex: 1 1 auto; min-inline-size: 0; }
 
+  /* The stats row is a hair from wrapping at text_scale large: the pair
+     needs ~215px and a full-screen card gives 218, a quadrant's 207. Broken
+     between the icon and its number it reads as two stacked rows, so the
+     pair is kept on one line and allowed to use the padding instead. */
   .ruuvi-card__stats { border-block-start: 1.5px solid currentColor; }
+  .ruuvi-card__stats > * { white-space: nowrap; }
 
   /* data-clamp is driven by the framework's JS. Truncating in CSS as well
-     keeps a long room name on one line even where that script has not run,
-     and a wrapped name here costs the row below it. Capping the column also
-     buys back the width that ran "hPa" and "Time" together in the header. */
+     keeps a long room name on one line even where that script has not run.
+     A wrapped name costs the row below it, and on a wide card it runs into
+     the hero beside it — "Main bedroom north" at text_scale large is enough
+     to do both. */
+  .ruuvi-card__name,
   .ruuvi-ledger__name {
     display: block;
-    max-inline-size: 14ch;
+    min-inline-size: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  /* The hero is what gives height back when a card is short; the name is a
+     fixed line and must not be the one that shrinks, or `overflow: hidden`
+     above clips it instead of ellipsising it. The wide rule higher up
+     re-grants it the slack, along the other axis. */
+  .ruuvi-card__name { flex: 0 0 auto; }
+
+  /* Capping the ledger's column also buys back the width that ran "hPa" and
+     "Time" together in the header. */
+  .ruuvi-ledger__name { max-inline-size: 14ch; }
 
   .ruuvi-icon { vertical-align: middle; }
 </style>
@@ -118,6 +155,50 @@
         <span class="value value--xsmall value--tnums">{{ sensor.humidity | default: '&mdash;' }}%</span>
       {%- endif -%}
     {%- endif -%}
+  </div>
+{% endtemplate %}
+
+{%- comment -%}
+  One sensor as a two-line row: name and temperature on the first line, the
+  humidity, the read time and any flags on the second. Used by the
+  half-vertical below lg, which is about 375x450 — a tall, narrow slot where
+  six of these read, and two columns of cards do not. sensor_line is the
+  one-line version, for the half-horizontal, which is wide and short instead.
+
+  Not the framework's `item` component, which this layout used to reach for
+  and which needs `.meta` and `.content` around its parts — as bare children
+  of `.item` they land in a flex row with `line-height: 0` and overlap. With
+  the parts stacked correctly there is nothing of `item` left to want: an
+  empty `.meta` is still drawn as a dotted bar on 1-bit, and an index in a
+  10px column is not legible on a 375px half.
+
+  `flex--col` centres its children rather than stretching them, and that has
+  to be undone at every level or the temperature sits against the name
+  instead of at the right edge: `stretch-x` fills the column this row is in,
+  `flex--stretch-x` fills the row for the two lines inside it, and `stretch-x`
+  on the name is what finally pushes the temperature right.
+{%- endcomment -%}
+{% template sensor_row %}
+  <div class="flex flex--col gap--none stretch-x flex--stretch-x{% if sensor.is_stale %} text--gray-30{% endif %}">
+    <div class="flex flex--row flex--center-y gap--xsmall">
+      <span class="title title--small stretch-x" data-clamp="1">{{ sensor.name }}</span>
+      {%- if sensor.status == 'no_data' -%}
+        <span class="value value--small">&mdash;</span>
+      {%- else -%}
+        <span class="value value--small value--tnums">{{ sensor.temperature }}&deg;C</span>
+      {%- endif -%}
+    </div>
+
+    <div class="flex flex--row flex--center-y gap--xsmall">
+      {%- if sensor.status == 'no_data' -%}
+        <span class="label label--small stretch-x">awaiting reading</span>
+      {%- else -%}
+        <span class="label label--small stretch-x">
+          {{- sensor.humidity | default: '&mdash;' }}% &middot; {{ sensor.measured_at -}}
+        </span>
+      {%- endif -%}
+      {% render 'sensor_flags', sensor: sensor %}
+    </div>
   </div>
 {% endtemplate %}
 
@@ -176,12 +257,21 @@
   1872x1404, but renders at scale_factor 1.8, so the CSS canvas is ~1040x780
   and a 4-column grid leaves about 200px of content width per card.
 
+  Pass `wide: true` where a portrait screen leaves the slot wider than it is
+  tall. A half-vertical on a portrait X is 375x1010, so a column of six cards
+  gives each one ~155px of height for a card that wants ~175 — and the read
+  time ran off the bottom edge. With `wide` the name moves up beside the hero
+  in portrait, a row the card no longer has to pay for. The quadrant takes it
+  for the same reason. The full screen does not: its portrait cards are
+  ~245x230, tall enough to stack and too narrow to share a row.
+
   The flagged modifier replaces the stylesheet's `:has()` rule from the Blade
   original — the condition is known here, so the class can just be written.
 {%- endcomment -%}
 {% template sensor_card %}
   <article class="ruuvi-card py--3 px--4 rounded--small
       {%- if rank == 1 %} ruuvi-card--primary{% endif -%}
+      {%- if wide %} ruuvi-card--wide{% endif -%}
       {%- if sensor.alarm or sensor.battery_low %} ruuvi-card--flagged{% endif -%}
       {%- if sensor.is_stale %} text--gray-30{% endif -%}">
     {%- comment -%}
@@ -218,24 +308,31 @@
     </div>
 
     {%- comment -%}
-      One line, clamped. "Living room freezer" is 19 characters and a real
-      name; two lines here would cost the stats row its space.
-    {%- endcomment -%}
-    <span class="title title--small ruuvi-card__name" data-clamp="1">{{ sensor.name }}</span>
+      Name and hero. Stacked by default; side by side where `wide` says the
+      card is wider than it is tall, which is the whole of the modifier. The
+      wrapper is what carries that, so the hero still absorbs the card's
+      slack and the stats and footer stay pinned to the bottom.
 
-    {%- comment -%}
-      Icon sits beside the number rather than above it. Stacked, it cost 24px
-      of height the card does not have.
+      The name is clamped to one line either way: "Living room freezer" is 19
+      characters and a real name, and a second line would cost the stats row
+      its space. The unit sits beside the number rather than above it —
+      stacked, it cost 24px of height the card does not have.
     {%- endcomment -%}
     {%- if sensor.status == 'no_data' -%}
-      <div class="flex flex--row flex--center-y gap--xsmall ruuvi-card__hero">
-        <span class="value value--base">&mdash;</span>
+      <div class="ruuvi-card__body">
+        <span class="title title--small ruuvi-card__name" data-clamp="1">{{ sensor.name }}</span>
+        <div class="flex flex--row flex--center-y gap--xsmall ruuvi-card__hero">
+          <span class="value value--base">&mdash;</span>
+        </div>
       </div>
       <span class="label label--small label--gray 1bit:text--black">awaiting reading</span>
     {%- else -%}
-      <div class="flex flex--row gap--xsmall ruuvi-card__hero">
-        <span class="value value--base value--tnums">{{ sensor.temperature }}</span>
-        <span class="value value--xsmall">&deg;C</span>
+      <div class="ruuvi-card__body">
+        <span class="title title--small ruuvi-card__name" data-clamp="1">{{ sensor.name }}</span>
+        <div class="flex flex--row gap--xsmall ruuvi-card__hero">
+          <span class="value value--base value--tnums">{{ sensor.temperature }}</span>
+          <span class="value value--xsmall">&deg;C</span>
+        </div>
       </div>
 
       {%- comment -%}
